@@ -1,0 +1,25 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 17
+VisualStudioVersion = 17.9.34728.123
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "CompetenceForm", "CompetenceForm\CompetenceForm.csproj", "{552E15AC-6BED-4C6D-8526-BB93F34CEF53}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{552E15AC-6BED-4C6D-8526-BB93F34CEF53}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{552E15AC-6BED-4C6D-8526-BB93F34CEF53}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{552E15AC-6BED-4C6D-8526-BB93F34CEF53}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{552E15AC-6BED-4C6D-8526-BB93F34CEF53}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {E73D7E76-9598-4256-A631-E24DA81DD680}
+	EndGlobalSection
+EndGlobal
