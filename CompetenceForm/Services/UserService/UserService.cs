@@ -19,6 +19,17 @@ namespace CompetenceForm.Services.UserService
             _authService = authService;
         }
 
+        public async Task<(Result, User?)> GetUserByIdInclusive(string userId)
+        {
+            var user = await _userRepository.GetUserByIdInclusive(userId);
+            if(user == null)
+            {
+                return (Result.Failure("User not found"), null);
+            }
+
+            return (Result.Success(), user);
+        }
+
         public async Task<(Result, User?)> CreateUserAsync(string username, string password)
         {
             // Validate password strength

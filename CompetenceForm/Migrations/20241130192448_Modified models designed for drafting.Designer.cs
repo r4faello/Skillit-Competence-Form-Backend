@@ -4,6 +4,7 @@ using CompetenceForm;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
@@ -11,9 +12,11 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace CompetenceForm.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    partial class ApplicationDbContextModelSnapshot : ModelSnapshot
+    [Migration("20241130192448_Modified models designed for drafting")]
+    partial class Modifiedmodelsdesignedfordrafting
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -84,6 +87,7 @@ namespace CompetenceForm.Migrations
                         .HasColumnType("nvarchar(450)");
 
                     b.Property<string>("AuthorId")
+                        .IsRequired()
                         .HasColumnType("nvarchar(450)");
 
                     b.Property<string>("CompetenceSetId")
@@ -99,7 +103,7 @@ namespace CompetenceForm.Migrations
 
                     b.HasIndex("CompetenceSetId");
 
-                    b.ToTable("Drafts");
+                    b.ToTable("Draft");
                 });
 
             modelBuilder.Entity("CompetenceForm.Models.Question", b =>
@@ -129,6 +133,7 @@ namespace CompetenceForm.Migrations
                         .HasColumnType("nvarchar(450)");
 
                     b.Property<string>("QuestionId")
+                        .IsRequired()
                         .HasColumnType("nvarchar(450)");
 
                     b.HasKey("Id");
@@ -139,7 +144,7 @@ namespace CompetenceForm.Migrations
 
                     b.HasIndex("QuestionId");
 
-                    b.ToTable("QuestionAnswerPairs");
+                    b.ToTable("QuestionAnswer");
                 });
 
             modelBuilder.Entity("CompetenceForm.Models.User", b =>
@@ -191,7 +196,9 @@ namespace CompetenceForm.Migrations
                 {
                     b.HasOne("CompetenceForm.Models.User", "Author")
                         .WithMany("Drafts")
-                        .HasForeignKey("AuthorId");
+                        .HasForeignKey("AuthorId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
 
                     b.HasOne("CompetenceForm.Models.CompetenceSet", "CompetenceSet")
                         .WithMany()
@@ -218,7 +225,9 @@ namespace CompetenceForm.Migrations
 
                     b.HasOne("CompetenceForm.Models.Question", "Question")
                         .WithMany()
-                        .HasForeignKey("QuestionId");
+                        .HasForeignKey("QuestionId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
 
                     b.Navigation("Answer");
 

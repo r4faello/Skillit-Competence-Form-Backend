@@ -28,6 +28,9 @@ namespace CompetenceForm
         public DbSet<Competence> Competences { get; set; }
         public DbSet<CompetenceSet> CompetenceSets { get; set; }
 
+        public DbSet<Draft> Drafts { get; set; }
+        public DbSet<QuestionAnswer> QuestionAnswerPairs { get; set; }
+
 
     }
 }

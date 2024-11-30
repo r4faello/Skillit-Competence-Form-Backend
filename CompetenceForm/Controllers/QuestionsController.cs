@@ -1,9 +1,11 @@
 ﻿using CompetenceForm.DTOs;
 using CompetenceForm.Models;
 using CompetenceForm.Services.CompetenceService;
+using CompetenceForm.Services.UserService;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
+using System.Security.Claims;
 
 namespace CompetenceForm.Controllers
 {
@@ -12,10 +14,12 @@ namespace CompetenceForm.Controllers
     public class QuestionsController : ControllerBase
     {
         private readonly ICompetenceService _competenceService;
+        private readonly IUserService _userService;
 
-        public QuestionsController(ICompetenceService competenceService)
+        public QuestionsController(ICompetenceService competenceService, IUserService userService)
         {
             _competenceService = competenceService;
+            _userService = userService;
         }
 
         [Authorize]
@@ -30,6 +34,28 @@ namespace CompetenceForm.Controllers
             }
 
             return Ok(response);
+        }
+
+        [Authorize]
+        [HttpPost("SaveAnsweredQuestion", Name = "SaveAnsweredQuestion")]
+        public async Task<ActionResult> SaveDraft([FromBody] SaveAnsweredQuestionDto details)
+        {
+            // User validation
+            var userId = HttpContext.User.FindFirstValue(ClaimTypes.NameIdentifier);
+            if (userId == null) { return Unauthorized(); }
+
+            var (userGetResult, user) = await _userService.GetUserByIdInclusive(userId);
+            if (!userGetResult.IsSuccess || user == null) { return Unauthorized(); }
+
+
+            // Saving answer
+            var result = await _competenceService.SaveAnsweredQuestion(user, details.CompetenceSetId, details.CompetenceId, details.AnswerId);
+            if (!result.IsSuccess)
+            {
+                return BadRequest(result.Message);
+            }
+
+            return Ok();
         }
     }
 

@@ -7,6 +7,7 @@
         public string HashedPassword { get; set; }
         public string Salt { get; set; }
         public bool IsAdmin { get; set; }
+        public List<Draft> Drafts { get; set; }
 
         public User()
         {
@@ -15,6 +16,7 @@
             HashedPassword = "";
             Salt = "";
             IsAdmin = false;
+            Drafts = new List<Draft>();
         }
 
         public User(string id, string username, string password, string salt)
@@ -24,6 +26,7 @@
             HashedPassword = password;
             Salt = salt;
             IsAdmin = false;
+            Drafts = new List<Draft>();
         }
     }
 }

@@ -11,9 +11,9 @@ namespace CompetenceForm.Repositories
             _context = context;
         }
 
-        public async Task<User?> GetByIdAsync(string id)
+        public async Task<User?> GetUserByIdInclusive(string id)
         {
-            var user = await _context.Users.FirstOrDefaultAsync(u => u.Id == id);
+            var user = await _context.Users.Include(u => u.Drafts).FirstOrDefaultAsync(u => u.Id == id);
             return user;
         }
 

@@ -8,10 +8,54 @@ namespace CompetenceForm.Services.CompetenceService
     public class CompetenceService : ICompetenceService
     {
         private readonly ICompetenceRepository _competenceRepository;
+        private readonly IUserRepository _userRepository;
 
-        public CompetenceService(ICompetenceRepository competenceRepository)
+        public CompetenceService(ICompetenceRepository competenceRepository, IUserRepository userRepository)
         {
             _competenceRepository = competenceRepository;
+            _userRepository = userRepository;
+        }
+
+        public async Task<Result> SaveAnsweredQuestion(User user, string competenceSetId, string competenceId, string answerId)
+        {
+            // Check if given competence set ID is valid
+            var competenceSet = await _competenceRepository.GetCompetenceSetByIdInclusive(competenceSetId);
+            if(competenceSet == null)
+            {
+                return Result.Failure("Competence set not found");
+            }
+
+
+            // Check if given competence ID is valid
+            var competence = competenceSet.Competences.FirstOrDefault(c => c.Id == competenceId);
+            if (competence == null)
+            {
+                return Result.Failure("Competence not found");
+            }
+
+
+            // Check if answerId is among options for current question
+            var answer = competence.Question.AnswerOptions.FirstOrDefault(a => a.Id == answerId);
+            if (answer == null)
+            {
+                return Result.Failure("Answer option not found");
+            }
+
+
+
+            // Retrieve the user's draft linked to the competence set ID; create a new draft if it doesn't exist
+            Draft? draft = user.Drafts.FirstOrDefault(d => d.CompetenceSet.Id == competenceSetId);
+            if(draft == null)
+            {
+                draft = await _competenceRepository.CreateNewDraft(user, competenceSet);
+            }
+
+            draft = await _competenceRepository.GetDraftByIdInclusive(draft.Id);
+
+            await _competenceRepository.RegisterAnsweredQuestion(draft, competence.Question, answer);
+
+
+            return Result.Success();
         }
 
         public async Task<(Result, CompetenceSetDto?)> SpitCompetenceSet()
