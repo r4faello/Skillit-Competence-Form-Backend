@@ -12,5 +12,12 @@
             Title = "";
             AnswerOptions = new List<Answer>();
         }
+
+        public Question(string title, List<Answer> answerOptions)
+        {
+            Id = Guid.NewGuid().ToString();
+            Title = title;
+            AnswerOptions = answerOptions;
+        }
     }
 }

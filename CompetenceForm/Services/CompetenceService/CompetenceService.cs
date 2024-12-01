@@ -61,6 +61,7 @@ namespace CompetenceForm.Services.CompetenceService
             return Result.Success();
         }
 
+
         public async Task<(Result, CompetenceSetDto?)> SpitCompetenceSet()
         {
             var currentCompetenceSet = await _competenceRepository.GetCurrentCompetenceSetAsync();
@@ -93,5 +94,25 @@ namespace CompetenceForm.Services.CompetenceService
 
             return (Result.Success(), response);
         }
+
+        public async Task<Result> Seed(int competenceCount, (int, int) answerCountRange, (int, int) answerImpactRange)
+        {
+            var wipeResult = await _competenceRepository.WipeCompetenceSets();
+            if (!wipeResult.IsSuccess)
+            {
+                return Result.Failure("Deletion failed.");
+            }
+
+
+            var (compSetResult, competenceSet) = await _competenceRepository.CreateRandomCompetenceSetAsync(competenceCount, answerCountRange, answerImpactRange);
+            if (!compSetResult.IsSuccess)
+            {
+                return Result.Failure("Internal error.");
+            }
+
+            return Result.Success();
+        }
+
+
     }
 }

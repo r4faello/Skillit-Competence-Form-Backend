@@ -8,5 +8,8 @@ namespace CompetenceForm.Services.CompetenceService
     {
         public Task<(Result, CompetenceSetDto?)> SpitCompetenceSet();
         public Task<Result> SaveAnsweredQuestion(User user, string competenceSetId, string competenceId, string answerId);
+
+
+        public Task<Result> Seed(int competenceCount, (int, int) answerCountRange, (int, int) answerImpactRange);
     }
 }

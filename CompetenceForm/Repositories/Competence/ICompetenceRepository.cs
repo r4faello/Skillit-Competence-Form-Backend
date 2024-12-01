@@ -11,5 +11,8 @@ namespace CompetenceForm.Repositories
         public Task<Result> RegisterAnsweredQuestionAsync(Draft? draft, Question question, Answer answer);
         public Task<Draft> CreateNewDraftAsync(User author, CompetenceSet competenceSet);
         public Task<Draft?> GetDraftByIdAsync(string draftId, DraftQuery query);
+        public Task<Result> WipeCompetenceSets();
+        public Task<(Result, Competence?)> CreateRandomCompetenceAsync((int, int) answerCountRange, (int, int) answerImpactRange);
+        public Task<(Result, CompetenceSet?)> CreateRandomCompetenceSetAsync(int competenceCount, (int, int) answerCountRange, (int, int) answerImpactRange);
     }
 }

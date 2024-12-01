@@ -11,5 +11,11 @@
             Id = Guid.NewGuid().ToString();
             Competences = new List<Competence>();
         }
+
+        public CompetenceSet(List<Competence> competences)
+        {
+            Id = Guid.NewGuid().ToString();
+            Competences = competences;
+        }
     }
 }

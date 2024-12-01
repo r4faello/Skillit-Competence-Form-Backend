@@ -13,5 +13,12 @@
             Title = "";
             InpactOnCompetence = 0;
         }
+
+        public Answer(string title, int impactOnCompetence)
+        {
+            Id = Guid.NewGuid().ToString();
+            Title = title;
+            InpactOnCompetence = InpactOnCompetence;
+        }
     }   
 }

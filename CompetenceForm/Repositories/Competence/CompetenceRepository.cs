@@ -1,6 +1,7 @@
 ﻿using CompetenceForm.Common;
 using CompetenceForm.Models;
 using CompetenceForm.Repositories._Queries;
+using LoremNET;
 using Microsoft.EntityFrameworkCore;
 
 namespace CompetenceForm.Repositories
@@ -125,6 +126,96 @@ namespace CompetenceForm.Repositories
             }
 
             return await draftQuery.FirstOrDefaultAsync(d => d.Id == draftId);
+        }
+
+
+
+
+        public async Task<Result> WipeCompetenceSets()
+        {
+            try
+            {
+                
+                await _context.Competences.ExecuteDeleteAsync();
+                await _context.QuestionAnswerPairs.ExecuteDeleteAsync();
+                await _context.Answers.ExecuteDeleteAsync();
+                await _context.Questions.ExecuteDeleteAsync();
+                await _context.CompetenceSets.ExecuteDeleteAsync();
+                await _context.Drafts.ExecuteDeleteAsync();
+
+                await _context.SaveChangesAsync();
+
+                return Result.Success();
+            }
+            catch (Exception e)
+            {
+                await Console.Out.WriteLineAsync(e.ToString());
+                return Result.Failure("Internal error.");
+            }
+        }
+
+        public async Task<(Result, Competence?)> CreateRandomCompetenceAsync((int, int) answerCountRange, (int, int) answerImpactRange)
+        {
+            var answerOptions = new List<Answer>();
+            var rand = new Random();
+            var answerCount = (int)rand.NextInt64(answerCountRange.Item1, answerCountRange.Item2);
+
+            try
+            {
+                for (int i=0; i<answerCount; i++)
+                {
+                    var ans = new Answer(Lorem.Words(1, 3), (int)rand.NextInt64(answerImpactRange.Item1, answerImpactRange.Item2));
+                    await _context.Answers.AddAsync(ans);
+                    answerOptions.Add(ans);
+                }
+
+                var question = new Question(Lorem.Words(3,6) + "?", answerOptions);
+                await _context.Questions.AddAsync(question);
+
+                var competence = new Competence(question, "Skill " + Lorem.Words(1, false, false));
+                await _context.Competences.AddAsync(competence);
+
+
+                await _context.SaveChangesAsync();
+                return (Result.Success(), competence);
+            }
+            catch (Exception e)
+            {
+                await Console.Out.WriteLineAsync(e.ToString());
+                return (Result.Failure("Failed to save competence."), null);
+            }
+        }
+
+        public async Task<(Result, CompetenceSet?)> CreateRandomCompetenceSetAsync(int competenceCount, (int, int) answerCountRange, (int, int) answerImpactRange)
+        {
+            try
+            {
+                var competences = new List<Competence>();
+
+                for(int i=0; i<competenceCount; i++)
+                {
+                    var (competenceCreationResult, competence) = await CreateRandomCompetenceAsync(answerCountRange, answerImpactRange);
+                    if (!competenceCreationResult.IsSuccess || competence == null)
+                    {
+                        await Console.Out.WriteLineAsync("Competence failed to create: " + competenceCreationResult.Message);
+                    }
+                    else
+                    {
+                        competences.Add(competence);
+                    }
+                }
+
+                var competenceSet = new CompetenceSet(competences);
+                _context.CompetenceSets.Add(competenceSet);
+
+                await _context.SaveChangesAsync();
+                return (Result.Success(), competenceSet);
+            }
+            catch (Exception e)
+            {
+                await Console.Out.WriteLineAsync(e.ToString());
+                return (Result.Failure("Competence set failed to save."), null);
+            }
         }
     }
 }

@@ -59,6 +59,20 @@ namespace CompetenceForm.Controllers
 
             return Ok();
         }
+
+        [HttpPost("Seed", Name = "Seed")]
+        public async Task<ActionResult> SeedCompetences()
+        {
+            var result = await _competenceService.Seed(10, (3, 5), (1, 5));
+
+            if (!result.IsSuccess)
+            {
+                return StatusCode(500, result.Message);
+            }
+
+            return Ok("Competence set has been successfully seeded.");
+        }
+    
     }
 
 }
