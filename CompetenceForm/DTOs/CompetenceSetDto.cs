@@ -11,6 +11,7 @@
         public string CompetenceId { get; set; }
         public string? Question { get; set; }
         public List<AnswerOptionDto> AnswerOptions { get; set; }
+        public string DraftedAnswerId { get; set; }
     }
 
     public class AnswerOptionDto

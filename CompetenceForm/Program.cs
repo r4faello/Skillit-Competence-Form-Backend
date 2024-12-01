@@ -1,4 +1,3 @@
-
 using CompetenceForm.Repositories;
 using CompetenceForm.Services.AuthService;
 using CompetenceForm.Services.CompetenceService;
@@ -18,7 +17,8 @@ namespace CompetenceForm
             var builder = WebApplication.CreateBuilder(args);
 
             builder.Services.AddDbContext<ApplicationDbContext>(options =>
-                options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")),
+                options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection"),
+                o => o.UseQuerySplittingBehavior(QuerySplittingBehavior.SplitQuery)),
                 ServiceLifetime.Scoped
             );
 

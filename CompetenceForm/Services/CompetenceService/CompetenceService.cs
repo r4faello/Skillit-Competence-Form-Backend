@@ -62,11 +62,11 @@ namespace CompetenceForm.Services.CompetenceService
         }
 
 
-        public async Task<(Result, CompetenceSetDto?)> SpitCompetenceSet()
+        public async Task<(Result, CompetenceSetDto?)> SpitCompetenceSet(User user)
         {
             var currentCompetenceSet = await _competenceRepository.GetCurrentCompetenceSetAsync();
 
-            if(currentCompetenceSet == null)
+            if (currentCompetenceSet == null)
             {
                 return (Result.Failure("Competence set not found"), null);
             }
@@ -75,6 +75,20 @@ namespace CompetenceForm.Services.CompetenceService
                 return (Result.Failure("No competences found in specified competence set"), null);
             }
 
+            var currentCompSetDraft = user.Drafts.FirstOrDefault(d => d.CompetenceSet.Id == currentCompetenceSet.Id);
+            if(currentCompSetDraft != null)
+            {
+                DraftQuery draftQuery = new DraftQuery
+                {
+                    IncludeQuestionAnswerPairs = true,
+                    IncludeQuestionAnswerPairQuestion = true,
+                    IncludeQuestionAnswerPairAnswer = true
+                };
+
+                currentCompSetDraft = await _competenceRepository.GetDraftByIdAsync(currentCompSetDraft.Id, draftQuery);
+            }
+            
+            
             var response = new CompetenceSetDto
             {
                 CompetenceSetId = currentCompetenceSet.Id,
@@ -88,7 +102,10 @@ namespace CompetenceForm.Services.CompetenceService
                         {
                             AnswerId = a.Id,
                             Answer = a.Title
-                        }).ToList()
+                        }).ToList(),
+                        DraftedAnswerId = currentCompSetDraft == null ? "" :
+                            currentCompSetDraft.Answers.Any(a => a.Question.Id == c.Question.Id) ?
+                            currentCompSetDraft.Answers.First(a => a.Question.Id == c.Question.Id).Answer.Id : ""
                     }).ToList()
             };
 
@@ -113,6 +130,16 @@ namespace CompetenceForm.Services.CompetenceService
             return Result.Success();
         }
 
+        public async Task<string> GetCurrentCompetenceSetId()
+        {
+            var currentSet = await _competenceRepository.GetCurrentCompetenceSetAsync();
+            if(currentSet == null)
+            {
+                return "";
+            }
+
+            return currentSet.Id;
+        }
 
     }
 }

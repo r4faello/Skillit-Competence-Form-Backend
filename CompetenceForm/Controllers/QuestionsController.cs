@@ -27,7 +27,24 @@ namespace CompetenceForm.Controllers
         [HttpGet("", Name = "GetAllQuestions")]
         public async Task<ActionResult<CompetenceSetDto>> GetAllQuestions()
         {
-            var (result, response) = await _competenceService.SpitCompetenceSet();
+            // User validation
+            var userId = HttpContext.User.FindFirstValue(ClaimTypes.NameIdentifier);
+            if (userId == null) { return Unauthorized(); }
+
+            var userQuery = new UserQuery { IncludeDrafts = true };
+            var (userGetResult, user) = await _userService.GetUserByIdAsync(userId, userQuery);
+            if (!userGetResult.IsSuccess || user == null) { return Unauthorized(); }
+
+            var currentCompSetId = await _competenceService.GetCurrentCompetenceSetId();
+            var currentCompSetDraft = user.Drafts.FirstOrDefault(d => d.CompetenceSet.Id == currentCompSetId);
+
+            var currentCompSetDraftId = "";
+            if(currentCompSetDraft != null)
+            {
+                currentCompSetDraftId = currentCompSetDraft.Id;
+            }
+
+            var (result, response) = await _competenceService.SpitCompetenceSet(user);
 
             if (result.IsSuccess == false)
             {
