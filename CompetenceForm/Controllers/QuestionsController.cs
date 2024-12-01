@@ -1,5 +1,6 @@
 ﻿using CompetenceForm.DTOs;
 using CompetenceForm.Models;
+using CompetenceForm.Repositories._Queries;
 using CompetenceForm.Services.CompetenceService;
 using CompetenceForm.Services.UserService;
 using Microsoft.AspNetCore.Authorization;
@@ -44,7 +45,8 @@ namespace CompetenceForm.Controllers
             var userId = HttpContext.User.FindFirstValue(ClaimTypes.NameIdentifier);
             if (userId == null) { return Unauthorized(); }
 
-            var (userGetResult, user) = await _userService.GetUserByIdInclusive(userId);
+            var userQuery = new UserQuery { IncludeDrafts = true };
+            var (userGetResult, user) = await _userService.GetUserByIdAsync(userId, userQuery);
             if (!userGetResult.IsSuccess || user == null) { return Unauthorized(); }
 
 

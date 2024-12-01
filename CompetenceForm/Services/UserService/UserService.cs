@@ -1,6 +1,7 @@
 ﻿using CompetenceForm.Common;
 using CompetenceForm.Models;
 using CompetenceForm.Repositories;
+using CompetenceForm.Repositories._Queries;
 using CompetenceForm.Services.AuthService;
 using CompetenceForm.Services.PasswordService;
 
@@ -19,9 +20,10 @@ namespace CompetenceForm.Services.UserService
             _authService = authService;
         }
 
-        public async Task<(Result, User?)> GetUserByIdInclusive(string userId)
+        public async Task<(Result, User?)> GetUserByIdAsync(string userId, UserQuery query)
         {
-            var user = await _userRepository.GetUserByIdInclusive(userId);
+
+            var user = await _userRepository.GetUserByIdAsync(userId, query);
             if(user == null)
             {
                 return (Result.Failure("User not found"), null);

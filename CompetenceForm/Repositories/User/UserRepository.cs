@@ -1,4 +1,5 @@
 ﻿using CompetenceForm.Models;
+using CompetenceForm.Repositories._Queries;
 using Microsoft.EntityFrameworkCore;
 
 namespace CompetenceForm.Repositories
@@ -11,10 +12,17 @@ namespace CompetenceForm.Repositories
             _context = context;
         }
 
-        public async Task<User?> GetUserByIdInclusive(string id)
+        public async Task<User?> GetUserByIdAsync(string id, UserQuery query)
         {
-            var user = await _context.Users.Include(u => u.Drafts).FirstOrDefaultAsync(u => u.Id == id);
-            return user;
+            var userQuery = _context.Users.AsQueryable();
+
+            if (query.IncludeDrafts)
+            {
+                userQuery = userQuery.Include(u => u.Drafts);
+            }
+
+
+            return await userQuery.FirstOrDefaultAsync(u => u.Id == id);
         }
 
         public async Task<User?> GetByUsernameAsync(string username)
