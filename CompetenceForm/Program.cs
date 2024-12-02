@@ -82,6 +82,8 @@ namespace CompetenceForm
                 app.UseSwaggerUI();
             }
 
+            app.UseCors("AllowSpecificOrigin");
+
             app.UseHttpsRedirection();
 
             app.UseAuthorization();
