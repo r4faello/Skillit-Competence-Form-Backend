@@ -217,5 +217,26 @@ namespace CompetenceForm.Repositories
                 return (Result.Failure("Competence set failed to save."), null);
             }
         }
+
+        public async Task<Result> DeleteUserDrafts(User user)
+        {
+            try
+            {
+                var answersToRemove = _context.Drafts
+                    .Where(d => d.Author == user)
+                    .SelectMany(d => d.Answers)
+                    .ToList();
+                _context.QuestionAnswerPairs.RemoveRange(answersToRemove);
+
+                _context.Drafts.RemoveRange(_context.Drafts.Where(d => d.Author == user));
+                await _context.SaveChangesAsync();
+                return Result.Success();
+            }
+            catch (Exception e)
+            {
+                Console.WriteLine(e.ToString());
+                return Result.Failure("Internal error.");
+            }
+        }
     }
 }

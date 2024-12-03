@@ -14,5 +14,7 @@ namespace CompetenceForm.Repositories
         public Task<Result> WipeCompetenceSets();
         public Task<(Result, Competence?)> CreateRandomCompetenceAsync((int, int) answerCountRange, (int, int) answerImpactRange);
         public Task<(Result, CompetenceSet?)> CreateRandomCompetenceSetAsync(int competenceCount, (int, int) answerCountRange, (int, int) answerImpactRange);
+        public Task<Result> DeleteUserDrafts(User user);
+    
     }
 }

@@ -77,6 +77,28 @@ namespace CompetenceForm.Controllers
             return Ok();
         }
 
+        [Authorize]
+        [HttpPost("deleteDrafts", Name = "DeleteDraft")]
+        public async Task<ActionResult> DeleteDraft()
+        {
+            // User validation
+            var userId = HttpContext.User.FindFirstValue(ClaimTypes.NameIdentifier);
+            if (userId == null) { return Unauthorized(); }
+
+            var userQuery = new UserQuery { IncludeDrafts = true };
+            var (userGetResult, user) = await _userService.GetUserByIdAsync(userId, userQuery);
+            if (!userGetResult.IsSuccess || user == null) { return Unauthorized(); }
+
+            var result = await _competenceService.DeleteUserDrafts(user);
+
+            if (!result.IsSuccess)
+            {
+                return StatusCode(500);
+            }
+
+            return Ok();
+        }
+
         [HttpPost("Seed", Name = "Seed")]
         public async Task<ActionResult> SeedCompetences()
         {

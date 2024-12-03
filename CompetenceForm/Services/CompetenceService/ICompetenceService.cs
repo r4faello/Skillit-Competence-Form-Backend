@@ -14,5 +14,6 @@ namespace CompetenceForm.Services.CompetenceService
 
 
         public Task<string> GetCurrentCompetenceSetId();
+        public Task<Result> DeleteUserDrafts(User user);
     }
 }

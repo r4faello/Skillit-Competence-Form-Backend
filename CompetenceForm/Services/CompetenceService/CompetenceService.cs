@@ -142,5 +142,11 @@ namespace CompetenceForm.Services.CompetenceService
             return currentSet.Id;
         }
 
+        public Task<Result> DeleteUserDrafts(User user)
+        {
+            var result = _competenceRepository.DeleteUserDrafts(user);
+
+            return result;
+        }
     }
 }
