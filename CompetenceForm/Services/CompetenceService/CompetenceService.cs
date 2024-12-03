@@ -101,7 +101,8 @@ namespace CompetenceForm.Services.CompetenceService
                         AnswerOptions = c.Question.AnswerOptions.Select(a => new AnswerOptionDto
                         {
                             AnswerId = a.Id,
-                            Answer = a.Title
+                            Answer = a.Title,
+                            Description = a.Description
                         }).ToList(),
                         DraftedAnswerId = currentCompSetDraft == null ? "" :
                             currentCompSetDraft.Answers.Any(a => a.Question.Id == c.Question.Id) ?

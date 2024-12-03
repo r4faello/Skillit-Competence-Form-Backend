@@ -164,7 +164,7 @@ namespace CompetenceForm.Repositories
             {
                 for (int i=0; i<answerCount; i++)
                 {
-                    var ans = new Answer(Lorem.Words(1, 3), (int)rand.NextInt64(answerImpactRange.Item1, answerImpactRange.Item2));
+                    var ans = new Answer(Lorem.Words(1, 3), (int)rand.NextInt64(answerImpactRange.Item1, answerImpactRange.Item2), Lorem.Sentence(5, 15));
                     await _context.Answers.AddAsync(ans);
                     answerOptions.Add(ans);
                 }
