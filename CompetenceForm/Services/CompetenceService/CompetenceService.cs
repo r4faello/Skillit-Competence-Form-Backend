@@ -1,5 +1,6 @@
 ﻿using CompetenceForm.Common;
 using CompetenceForm.DTOs;
+using CompetenceForm.Migrations;
 using CompetenceForm.Models;
 using CompetenceForm.Repositories;
 using CompetenceForm.Repositories._Queries;
@@ -105,8 +106,8 @@ namespace CompetenceForm.Services.CompetenceService
                             Description = a.Description
                         }).ToList(),
                         DraftedAnswerId = currentCompSetDraft == null ? "" :
-                            currentCompSetDraft.Answers.Any(a => a.Question.Id == c.Question.Id) ?
-                            currentCompSetDraft.Answers.First(a => a.Question.Id == c.Question.Id).Answer.Id : ""
+                            currentCompSetDraft.QuestionAnswerPairs.Any(a => a.Question.Id == c.Question.Id) ?
+                            currentCompSetDraft.QuestionAnswerPairs.First(a => a.Question.Id == c.Question.Id).Answer.Id : ""
                     }).ToList()
             };
 
@@ -148,5 +149,51 @@ namespace CompetenceForm.Services.CompetenceService
 
             return result;
         }
+
+        public async Task<Result> FinalizeDraft(User user)
+        {
+            if(user == null) { return Result.Failure("User not valid"); }
+
+            var currentCompetenceSet = await _competenceRepository.GetCurrentCompetenceSetAsync();
+            if(currentCompetenceSet == null){ return Result.Failure("Current competence set was not found."); }
+
+            
+            var (result, submittedRecord) = await _competenceRepository.FinalizeDraftAsync(user, currentCompetenceSet.Id);
+            if (!result.IsSuccess) { return result; }
+            
+            var deletionResult = await _competenceRepository.DeleteUserDrafts(user);
+            if (!deletionResult.IsSuccess) { return result; }
+
+
+            return Result.Success();
+        }
+
+        public async Task<(Result, List<SubmittedRecordDto>?)> SpitSubmittedRecords()
+        {
+            var (result, submittedRecords) = await _competenceRepository.GetAllSubmittedRecords();
+
+            if (submittedRecords == null || !submittedRecords.Any())
+            {
+                return (Result.Failure("No submitted records found"), null);
+            }
+
+            
+            var response = submittedRecords.Select(submittedRecord => new SubmittedRecordDto
+            {
+                RecordId = submittedRecord.Id,
+                AuthorId = submittedRecord.AuthorId,
+                AuthorUsername = submittedRecord.Author?.Username ?? "Unknown User",
+                Competences = submittedRecord.CompetenceValues.Select(cv => new CompetenceValueDto
+                {
+                    CompetenceId = cv.Competence?.Id ?? Guid.Empty.ToString(),
+                    CompetenceTitle = cv.Competence?.Title ?? "Unknown Skill",
+                    Value = cv.Value
+                }).ToList(),
+                SubmittedAt = submittedRecord.SubmittedAt
+            }).ToList();
+
+            return (Result.Success(), response);
+        }
+
     }
 }

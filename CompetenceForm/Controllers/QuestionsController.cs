@@ -7,6 +7,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using System.Security.Claims;
+using CompetenceForm.Controllers;
 
 namespace CompetenceForm.Controllers
 {
@@ -23,17 +24,22 @@ namespace CompetenceForm.Controllers
             _userService = userService;
         }
 
+        private async Task<User?> GetUserAsync()
+        {
+            var userId = HttpContext.User.FindFirstValue(ClaimTypes.NameIdentifier);
+            if (userId == null) { return null; }
+
+            var userQuery = new UserQuery { IncludeDrafts = true };
+            var (userGetResult, user) = await _userService.GetUserByIdAsync(userId, userQuery);
+            return userGetResult.IsSuccess ? user : null;
+        }
+
         [Authorize]
         [HttpGet("", Name = "GetAllQuestions")]
         public async Task<ActionResult<CompetenceSetDto>> GetAllQuestions()
         {
-            // User validation
-            var userId = HttpContext.User.FindFirstValue(ClaimTypes.NameIdentifier);
-            if (userId == null) { return Unauthorized(); }
-
-            var userQuery = new UserQuery { IncludeDrafts = true };
-            var (userGetResult, user) = await _userService.GetUserByIdAsync(userId, userQuery);
-            if (!userGetResult.IsSuccess || user == null) { return Unauthorized(); }
+            var user = await GetUserAsync();
+            if(user == null) { return Unauthorized(); }
 
             var currentCompSetId = await _competenceService.GetCurrentCompetenceSetId();
             var currentCompSetDraft = user.Drafts.FirstOrDefault(d => d.CompetenceSet.Id == currentCompSetId);
@@ -58,14 +64,8 @@ namespace CompetenceForm.Controllers
         [HttpPost("SaveAnsweredQuestion", Name = "SaveAnsweredQuestion")]
         public async Task<ActionResult> SaveDraft([FromBody] SaveAnsweredQuestionDto details)
         {
-            // User validation
-            var userId = HttpContext.User.FindFirstValue(ClaimTypes.NameIdentifier);
-            if (userId == null) { return Unauthorized(); }
-
-            var userQuery = new UserQuery { IncludeDrafts = true };
-            var (userGetResult, user) = await _userService.GetUserByIdAsync(userId, userQuery);
-            if (!userGetResult.IsSuccess || user == null) { return Unauthorized(); }
-
+            var user = await GetUserAsync();
+            if (user == null) { return Unauthorized(); }
 
             // Saving answer
             var result = await _competenceService.SaveAnsweredQuestion(user, details.CompetenceSetId, details.CompetenceId, details.AnswerId);
@@ -81,13 +81,8 @@ namespace CompetenceForm.Controllers
         [HttpPost("deleteDrafts", Name = "DeleteDraft")]
         public async Task<ActionResult> DeleteDraft()
         {
-            // User validation
-            var userId = HttpContext.User.FindFirstValue(ClaimTypes.NameIdentifier);
-            if (userId == null) { return Unauthorized(); }
-
-            var userQuery = new UserQuery { IncludeDrafts = true };
-            var (userGetResult, user) = await _userService.GetUserByIdAsync(userId, userQuery);
-            if (!userGetResult.IsSuccess || user == null) { return Unauthorized(); }
+            var user = await GetUserAsync();
+            if (user == null) { return Unauthorized(); }
 
             var result = await _competenceService.DeleteUserDrafts(user);
 
@@ -98,6 +93,21 @@ namespace CompetenceForm.Controllers
 
             return Ok();
         }
+
+        [Authorize]
+        [HttpPost("finalizeDraft", Name = "FinalizeDraft")]
+        public async Task<ActionResult> FinalizeResult()
+        {
+            var user = await GetUserAsync();
+            if(user == null) { return Unauthorized(); }
+
+            var result = await _competenceService.FinalizeDraft(user);
+
+            if (!result.IsSuccess){ return BadRequest(result.Message); }
+
+            return Ok();
+        }
+
 
         [HttpPost("Seed", Name = "Seed")]
         public async Task<ActionResult> SeedCompetences()

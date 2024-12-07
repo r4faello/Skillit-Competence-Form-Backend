@@ -1,8 +1,11 @@
 ﻿using AutoMapper;
 using CompetenceForm.DTOs;
+using CompetenceForm.Models;
+using CompetenceForm.Repositories._Queries;
 using CompetenceForm.Services.UserService;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
+using System.Security.Claims;
 
 namespace CompetenceForm.Controllers
 {
@@ -14,6 +17,16 @@ namespace CompetenceForm.Controllers
         public UserController(IUserService userService)
         {
             _userService = userService;
+        }
+
+        private async Task<User?> GetUserAsync()
+        {
+            var userId = HttpContext.User.FindFirstValue(ClaimTypes.NameIdentifier);
+            if (userId == null) { return null; }
+
+            var userQuery = new UserQuery { IncludeDrafts = true };
+            var (userGetResult, user) = await _userService.GetUserByIdAsync(userId, userQuery);
+            return userGetResult.IsSuccess ? user : null;
         }
 
 

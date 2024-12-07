@@ -63,14 +63,14 @@ namespace CompetenceForm.Repositories
 
             try
             {
-                var existingAnswer = draft.Answers.FirstOrDefault(qa => qa.Question.Equals(question));
+                var existingAnswer = draft.QuestionAnswerPairs.FirstOrDefault(qa => qa.Question.Equals(question));
                 if (existingAnswer != null)
                 {
                     existingAnswer.Answer = answer;
                 }
                 else
                 {
-                    draft.Answers.Add(new QuestionAnswer(question, answer));
+                    draft.QuestionAnswerPairs.Add(new QuestionAnswer(question, answer));
                 }
 
                 await _context.SaveChangesAsync();
@@ -110,17 +110,17 @@ namespace CompetenceForm.Repositories
 
             if (query.IncludeQuestionAnswerPairs)
             {
-                draftQuery = draftQuery.Include(d => d.Answers);
+                draftQuery = draftQuery.Include(d => d.QuestionAnswerPairs);
 
                 if (query.IncludeQuestionAnswerPairQuestion)
                 {
-                    draftQuery = draftQuery.Include(d => d.Answers)
+                    draftQuery = draftQuery.Include(d => d.QuestionAnswerPairs)
                                            .ThenInclude(a => a.Question);
                 }
 
                 if (query.IncludeQuestionAnswerPairAnswer)
                 {
-                    draftQuery = draftQuery.Include(d => d.Answers)
+                    draftQuery = draftQuery.Include(d => d.QuestionAnswerPairs)
                                            .ThenInclude(a => a.Answer);
                 }
             }
@@ -224,7 +224,7 @@ namespace CompetenceForm.Repositories
             {
                 var answersToRemove = _context.Drafts
                     .Where(d => d.Author == user)
-                    .SelectMany(d => d.Answers)
+                    .SelectMany(d => d.QuestionAnswerPairs)
                     .ToList();
                 _context.QuestionAnswerPairs.RemoveRange(answersToRemove);
 
@@ -236,6 +236,59 @@ namespace CompetenceForm.Repositories
             {
                 Console.WriteLine(e.ToString());
                 return Result.Failure("Internal error.");
+            }
+        }
+
+        public async Task<(Result, SubmittedRecord?)> FinalizeDraftAsync(User user, string competenceSetId)
+        {
+            var draft = await _context.Drafts
+                .Include(d=> d.QuestionAnswerPairs)
+                .ThenInclude(qap => qap.Question)
+                .Include(d=> d.QuestionAnswerPairs)
+                .ThenInclude(qap => qap.Answer)
+                .FirstOrDefaultAsync(d => d.Author.Id == user.Id);
+            if(draft == null){ return (Result.Failure("Draft not found"), null); }
+
+            if(draft?.QuestionAnswerPairs == null || !draft.QuestionAnswerPairs.Any()){ return (Result.Failure("Draft is empty"), null);}
+            
+
+            var competenceValues = new List<CompetenceValue>();
+            foreach (var competence in draft.CompetenceSet.Competences)
+            {
+                if(competence == null || competence.Question == null) { continue; }
+
+                var pair = draft. QuestionAnswerPairs.FirstOrDefault(qap => qap.Question.Id == competence.Question.Id);
+
+                int? numericResult = pair != null ? pair.Answer.InpactOnCompetence : null;
+                
+                var newCompValue = new CompetenceValue(competence, numericResult);
+
+                competenceValues.Add(newCompValue);
+            }
+
+            
+            var newSubmittedRecord = new SubmittedRecord(user, competenceSetId, competenceValues);
+            await _context.SubmittedRecords.AddAsync(newSubmittedRecord);
+            await _context.SaveChangesAsync();
+
+            return (Result.Success(), newSubmittedRecord);
+        }
+        public bool HasQuestionAnswerPairs(Draft draft)
+        {
+            return draft?.QuestionAnswerPairs != null && draft.QuestionAnswerPairs.Any();
+        }
+
+        public async Task<(Result, List<SubmittedRecord>?)> GetAllSubmittedRecords()
+        {
+            try
+            {
+                var submittedRecords = await _context.SubmittedRecords.Include(sr => sr.CompetenceValues).ThenInclude(cv => cv.Competence).ToListAsync();
+                return (Result.Success(), submittedRecords);
+            }
+            catch (Exception e)
+            {
+                await Console.Out.WriteLineAsync(e.ToString());
+                return (Result.Failure("Internal error."), null);
             }
         }
     }

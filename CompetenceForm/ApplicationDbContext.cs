@@ -27,10 +27,9 @@ namespace CompetenceForm
         public DbSet<Question> Questions { get; set; }
         public DbSet<Competence> Competences { get; set; }
         public DbSet<CompetenceSet> CompetenceSets { get; set; }
-
         public DbSet<Draft> Drafts { get; set; }
         public DbSet<QuestionAnswer> QuestionAnswerPairs { get; set; }
-
-
+        public DbSet<SubmittedRecord> SubmittedRecords { get; set; }
+        public DbSet<CompetenceValue> CompetenceValues { get; set; }
     }
 }
