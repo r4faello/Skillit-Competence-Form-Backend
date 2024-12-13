@@ -282,7 +282,7 @@ namespace CompetenceForm.Repositories
         {
             try
             {
-                var submittedRecords = await _context.SubmittedRecords.Include(sr => sr.CompetenceValues).ThenInclude(cv => cv.Competence).ToListAsync();
+                var submittedRecords = await _context.SubmittedRecords.Include(sr=>sr.Author).Include(sr => sr.CompetenceValues).ThenInclude(cv => cv.Competence).ToListAsync();
                 return (Result.Success(), submittedRecords);
             }
             catch (Exception e)
