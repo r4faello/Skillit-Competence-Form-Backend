@@ -291,5 +291,23 @@ namespace CompetenceForm.Repositories
                 return (Result.Failure("Internal error."), null);
             }
         }
+
+        public async Task<(Result, int?)> GetUnfinishedUserCount()
+        {
+            try
+            {
+                var userCount = await _context.Drafts
+                    .Select(d => d.Author.Id)
+                    .Distinct()
+                    .CountAsync();
+
+                return (Result.Success(), userCount);
+            }
+            catch (Exception e)
+            {
+                await Console.Out.WriteLineAsync(e.ToString());
+                return (Result.Failure("Internal error."), null);
+            }
+        }
     }
 }

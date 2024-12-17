@@ -195,5 +195,16 @@ namespace CompetenceForm.Services.CompetenceService
             return (Result.Success(), response);
         }
 
+        public async Task<(Result, int?)> GetUnfinishedUserCount()
+        {
+            var (result, count) = await _competenceRepository.GetUnfinishedUserCount();
+
+            if (!result.IsSuccess)
+            {
+                return (result, null);
+            }
+
+            return (result, count);
+        }
     }
 }

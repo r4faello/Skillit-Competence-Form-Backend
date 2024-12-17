@@ -13,5 +13,6 @@ namespace CompetenceForm.Services.CompetenceService
         public Task<Result> DeleteUserDrafts(User user);
         public Task<Result> FinalizeDraft(User user);
         public Task<(Result, List<SubmittedRecordDto>?)> SpitSubmittedRecords();
+        public Task<(Result, int?)> GetUnfinishedUserCount();
     }
 }

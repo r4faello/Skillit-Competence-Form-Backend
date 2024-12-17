@@ -45,5 +45,22 @@ namespace CompetenceForm.Controllers
 
             return Ok(records);
         }
+
+        [Authorize]
+        [HttpGet("unfinishedUserCount", Name = "GetUnfinishedUserCount")]
+        public async Task<ActionResult> GetUnfinishedUserCount()
+        {
+            var user = await GetUserAsync();
+            if (user == null || !user.IsAdmin) { return Unauthorized(); }
+
+            var (result, count) = await _competenceService.GetUnfinishedUserCount();
+
+            if (!result.IsSuccess)
+            {
+                return BadRequest(result.Message);
+            }
+
+            return Ok(count);
+        }
     }
 }

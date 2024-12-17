@@ -17,6 +17,7 @@ namespace CompetenceForm.Repositories
         public Task<Result> DeleteUserDrafts(User user);
         public Task<(Result, SubmittedRecord?)> FinalizeDraftAsync(User user, string competenceSetId);
         public Task<(Result, List<SubmittedRecord>?)> GetAllSubmittedRecords();
+        public Task<(Result, int?)> GetUnfinishedUserCount();
     
     }
 }
