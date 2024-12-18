@@ -136,7 +136,7 @@ namespace CompetenceForm.Repositories
         {
             try
             {
-                
+                await _context.CompetenceValues.ExecuteDeleteAsync();
                 await _context.Competences.ExecuteDeleteAsync();
                 await _context.QuestionAnswerPairs.ExecuteDeleteAsync();
                 await _context.Answers.ExecuteDeleteAsync();

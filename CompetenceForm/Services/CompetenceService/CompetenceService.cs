@@ -210,6 +210,14 @@ namespace CompetenceForm.Services.CompetenceService
 
         public async Task<Result> SeedCompetenceSetFromJsonAsync(CompetenceSetJson jsonData)
         {
+            var wipeResult = await _competenceRepository.WipeCompetenceSets();
+
+            if (!wipeResult.IsSuccess)
+            {
+                return wipeResult;
+            }
+
+
             var (result, competenceSet) = await _competenceRepository.CreateCompetenceSetFromJsonAsync(jsonData);
 
             if (!result.IsSuccess)
