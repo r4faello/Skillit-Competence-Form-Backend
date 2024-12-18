@@ -37,7 +37,7 @@ namespace CompetenceForm.Services.UserService
             // Validate password strength
             if (!_passwordService.IsPasswordStrongEnough(password))
             {
-                return (Result.Failure("Password is not strong enough. It should have upper, lower letters, numbers and special characters."), null);
+                return (Result.Failure("Password is not strong enough. It should have at least 12 chars, upper, lower letters, numbers and special characters."), null);
             }
 
             // Check if username is free to use
