@@ -102,11 +102,11 @@ namespace CompetenceForm.Controllers
             var user = await GetUserAsync();
             if(user == null) { return Unauthorized(); }
 
-            var result = await _competenceService.FinalizeDraft(user);
+            var (result, record) = await _competenceService.FinalizeDraft(user);
 
             if (!result.IsSuccess){ return BadRequest(result.Message); }
 
-            return Ok();
+            return Ok(record);
         }
 
 

@@ -12,7 +12,7 @@ namespace CompetenceForm.Services.CompetenceService
         public Task<Result> Seed(int competenceCount, (int, int) answerCountRange, (int, int) answerImpactRange);
         public Task<string> GetCurrentCompetenceSetId();
         public Task<Result> DeleteUserDrafts(User user);
-        public Task<Result> FinalizeDraft(User user);
+        public Task<(Result, SubmittedRecordDto?)> FinalizeDraft(User user);
         public Task<(Result, List<SubmittedRecordDto>?)> SpitSubmittedRecords();
         public Task<(Result, int?)> GetUnfinishedUserCount();
         public Task<Result> SeedCompetenceSetFromJsonAsync(CompetenceSetJson jsonData);

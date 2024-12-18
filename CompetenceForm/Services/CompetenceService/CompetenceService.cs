@@ -1,4 +1,5 @@
-﻿using CompetenceForm.Common;
+﻿using AutoMapper;
+using CompetenceForm.Common;
 using CompetenceForm.DTOs;
 using CompetenceForm.Migrations;
 using CompetenceForm.Models;
@@ -151,22 +152,35 @@ namespace CompetenceForm.Services.CompetenceService
             return result;
         }
 
-        public async Task<Result> FinalizeDraft(User user)
+        public async Task<(Result, SubmittedRecordDto?)> FinalizeDraft(User user)
         {
-            if(user == null) { return Result.Failure("User not valid"); }
+            if (user == null) { return (Result.Failure("User not valid"), null); }
 
             var currentCompetenceSet = await _competenceRepository.GetCurrentCompetenceSetAsync();
-            if(currentCompetenceSet == null){ return Result.Failure("Current competence set was not found."); }
+            if (currentCompetenceSet == null) { return (Result.Failure("Current competence set was not found."), null); }
 
-            
             var (result, submittedRecord) = await _competenceRepository.FinalizeDraftAsync(user, currentCompetenceSet.Id);
-            if (!result.IsSuccess) { return result; }
-            
+            if (!result.IsSuccess) { return (result, null); }
+
             var deletionResult = await _competenceRepository.DeleteUserDrafts(user);
-            if (!deletionResult.IsSuccess) { return result; }
+            if (!deletionResult.IsSuccess) { return (result, null); }
 
+            // Create SubmittedRecordDto from submittedRecord
+            var submittedRecordDto = new SubmittedRecordDto
+            {
+                RecordId = submittedRecord.Id,
+                AuthorId = submittedRecord.AuthorId,
+                AuthorUsername = submittedRecord.Author?.Username ?? "Unknown User",
+                Competences = submittedRecord.CompetenceValues.Select(cv => new CompetenceValueDto
+                {
+                    CompetenceId = cv.Competence?.Id ?? Guid.Empty.ToString(),
+                    CompetenceTitle = cv.Competence?.Title ?? "Unknown Skill",
+                    Value = cv.Value
+                }).ToList(),
+                SubmittedAt = submittedRecord.SubmittedAt
+            };
 
-            return Result.Success();
+            return (Result.Success(), submittedRecordDto);
         }
 
         public async Task<(Result, List<SubmittedRecordDto>?)> SpitSubmittedRecords()
