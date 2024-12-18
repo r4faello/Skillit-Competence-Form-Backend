@@ -1,6 +1,7 @@
 ﻿using CompetenceForm.Common;
 using CompetenceForm.DTOs;
 using CompetenceForm.Models;
+using static CompetenceForm.Repositories.CompetenceRepository;
 
 namespace CompetenceForm.Services.CompetenceService
 {
@@ -14,5 +15,6 @@ namespace CompetenceForm.Services.CompetenceService
         public Task<Result> FinalizeDraft(User user);
         public Task<(Result, List<SubmittedRecordDto>?)> SpitSubmittedRecords();
         public Task<(Result, int?)> GetUnfinishedUserCount();
+        public Task<Result> SeedCompetenceSetFromJsonAsync(CompetenceSetJson jsonData);
     }
 }

@@ -3,6 +3,7 @@ using CompetenceForm.Models;
 using CompetenceForm.Repositories._Queries;
 using LoremNET;
 using Microsoft.EntityFrameworkCore;
+using System.Text.Json;
 
 namespace CompetenceForm.Repositories
 {
@@ -309,5 +310,106 @@ namespace CompetenceForm.Repositories
                 return (Result.Failure("Internal error."), null);
             }
         }
+
+        public async Task<(Result, CompetenceSet?)> CreateCompetenceSetFromJsonAsync(CompetenceSetJson jsonData)
+        {
+            try
+            {
+                Console.WriteLine($"Incoming JSON Data: {jsonData}");
+
+                // Configure the serializer to accept camelCase JSON
+                var options = new JsonSerializerOptions
+                {
+                    PropertyNamingPolicy = JsonNamingPolicy.CamelCase
+                };
+
+                var competenceSetData = jsonData;
+
+                if (competenceSetData == null || competenceSetData.Skills == null || !competenceSetData.Skills.Any())
+                {
+                    return (Result.Failure("Invalid or empty JSON data."), null);
+                }
+
+                // Create a new CompetenceSet
+                var competenceSet = new CompetenceSet();
+
+                foreach (var skill in competenceSetData.Skills)
+                {
+                    foreach (var questionData in skill.Questions)
+                    {
+                        // Create answers
+                        var answers = questionData.AnswerOptions.Select(option => new Answer
+                        {
+                            Title = option.Option,
+                            Description = option.Description,
+                            InpactOnCompetence = option.Points
+                        }).ToList();
+
+                        // Create question
+                        var question = new Question
+                        {
+                            Title = questionData.Question,
+                            AnswerOptions = answers
+                        };
+
+                        // Add question and answers to the database
+                        await _context.Questions.AddAsync(question);
+
+                        // Create competence
+                        var competence = new Competence
+                        {
+                            Title = skill.SkillName,
+                            Question = question
+                        };
+
+                        // Add competence to the set
+                        competenceSet.Competences.Add(competence);
+
+                        // Add competence to the database
+                        await _context.Competences.AddAsync(competence);
+                    }
+                }
+
+                // Save the CompetenceSet
+                await _context.CompetenceSets.AddAsync(competenceSet);
+                await _context.SaveChangesAsync();
+
+                return (Result.Success(), competenceSet);
+            }
+            catch (Exception e)
+            {
+                await Console.Out.WriteLineAsync(e.ToString());
+                return (Result.Failure("Failed to create competence set from JSON."), null);
+            }
+        }
+
+
+
+        // Helper class to deserialize JSON
+        public class CompetenceSetJson
+        {
+            public List<SkillJson> Skills { get; set; } = new List<SkillJson>();
+        }
+
+        public class SkillJson
+        {
+            public string SkillName { get; set; } = "";
+            public List<QuestionJson> Questions { get; set; } = new List<QuestionJson>();
+        }
+
+        public class QuestionJson
+        {
+            public string Question { get; set; } = "";
+            public List<AnswerOptionJson> AnswerOptions { get; set; } = new List<AnswerOptionJson>();
+        }
+
+        public class AnswerOptionJson
+        {
+            public string Option { get; set; } = "";
+            public int Points { get; set; }
+            public string Description { get; set; }
+        }
+
+
     }
 }

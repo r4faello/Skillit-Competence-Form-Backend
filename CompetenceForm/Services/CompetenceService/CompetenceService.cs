@@ -4,6 +4,7 @@ using CompetenceForm.Migrations;
 using CompetenceForm.Models;
 using CompetenceForm.Repositories;
 using CompetenceForm.Repositories._Queries;
+using static CompetenceForm.Repositories.CompetenceRepository;
 
 namespace CompetenceForm.Services.CompetenceService
 {
@@ -206,5 +207,19 @@ namespace CompetenceForm.Services.CompetenceService
 
             return (result, count);
         }
+
+        public async Task<Result> SeedCompetenceSetFromJsonAsync(CompetenceSetJson jsonData)
+        {
+            var (result, competenceSet) = await _competenceRepository.CreateCompetenceSetFromJsonAsync(jsonData);
+
+            if (!result.IsSuccess)
+            {
+                return Result.Failure("Failed to seed competence set.");
+            }
+
+            return Result.Success();
+        }
+
+
     }
 }

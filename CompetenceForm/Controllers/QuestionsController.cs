@@ -8,6 +8,7 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using System.Security.Claims;
 using CompetenceForm.Controllers;
+using static CompetenceForm.Repositories.CompetenceRepository;
 
 namespace CompetenceForm.Controllers
 {
@@ -110,9 +111,9 @@ namespace CompetenceForm.Controllers
 
 
         [HttpPost("Seed", Name = "Seed")]
-        public async Task<ActionResult> SeedCompetences()
+        public async Task<ActionResult> SeedCompetences([FromBody] CompetenceSetJson jsonData)
         {
-            var result = await _competenceService.Seed(10, (3, 5), (1, 5));
+            var result = await _competenceService.SeedCompetenceSetFromJsonAsync(jsonData);
 
             if (!result.IsSuccess)
             {

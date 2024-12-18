@@ -1,6 +1,7 @@
 ﻿using CompetenceForm.Common;
 using CompetenceForm.Models;
 using CompetenceForm.Repositories._Queries;
+using static CompetenceForm.Repositories.CompetenceRepository;
 
 namespace CompetenceForm.Repositories
 {
@@ -18,6 +19,8 @@ namespace CompetenceForm.Repositories
         public Task<(Result, SubmittedRecord?)> FinalizeDraftAsync(User user, string competenceSetId);
         public Task<(Result, List<SubmittedRecord>?)> GetAllSubmittedRecords();
         public Task<(Result, int?)> GetUnfinishedUserCount();
-    
+        public Task<(Result, CompetenceSet?)> CreateCompetenceSetFromJsonAsync(CompetenceSetJson jsonData);
+
+
     }
 }
