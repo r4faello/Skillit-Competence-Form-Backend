@@ -50,7 +50,7 @@ namespace CompetenceForm
                 options.AddPolicy("AllowSpecificOrigin",
                     policy =>
                     {
-                        policy.WithOrigins("http://localhost:3000")
+                        policy.WithOrigins("https://competenceform.netlify.app")
                               .AllowAnyHeader()
                               .AllowAnyMethod();
                     });
