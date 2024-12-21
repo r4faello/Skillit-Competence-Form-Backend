@@ -361,4 +361,6 @@ MigrationBackup/
 
 # Fody - auto-generated XML schema
 FodyWeavers.xsd
-/CompetenceForm/appsettings.json
+# /CompetenceForm/appsettings.json
+
+.env

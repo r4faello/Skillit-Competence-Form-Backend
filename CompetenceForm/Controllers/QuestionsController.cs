@@ -122,7 +122,6 @@ namespace CompetenceForm.Controllers
 
             return Ok("Competence set has been successfully seeded.");
         }
-    
     }
 
 }
