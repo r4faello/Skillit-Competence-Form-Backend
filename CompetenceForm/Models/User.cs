@@ -2,31 +2,20 @@
 {
     public class User
     {
-        public string Id { get; set; }
-        public string Username { get; set; }
-        public string HashedPassword { get; set; }
-        public string Salt { get; set; }
-        public bool IsAdmin { get; set; }
-        public List<Draft> Drafts { get; set; }
+        public string Id { get; private set; } = Guid.NewGuid().ToString();
+        public string Username { get; set; } = string.Empty;
+        public string HashedPassword { get; set; } = string.Empty;
+        public string Salt { get; set; } = string.Empty;
+        public bool IsAdmin { get; set; } = false;
+        public List<Draft> Drafts { get; set; } = new List<Draft>();
 
-        public User()
-        {
-            Id = Guid.NewGuid().ToString();
-            Username = "";
-            HashedPassword = "";
-            Salt = "";
-            IsAdmin = false;
-            Drafts = new List<Draft>();
-        }
 
-        public User(string id, string username, string password, string salt)
+        public User(string username, string password, string salt)
         {
-            Id = id;
             Username = username;
             HashedPassword = password;
             Salt = salt;
-            IsAdmin = false;
-            Drafts = new List<Draft>();
         }
+        public User(){}
     }
 }

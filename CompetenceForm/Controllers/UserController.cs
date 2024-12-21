@@ -3,7 +3,6 @@ using CompetenceForm.DTOs;
 using CompetenceForm.Models;
 using CompetenceForm.Repositories._Queries;
 using CompetenceForm.Services.UserService;
-using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using System.Security.Claims;
 

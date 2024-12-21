@@ -4,23 +4,16 @@ namespace CompetenceForm.Models
 {
     public class CompetenceValue
     {
-        public string Id { get; set; }
+        public string Id { get; private set; } = Guid.NewGuid().ToString();
         public Competence? Competence { get; set; }
         public int? Value { get; set; }
 
 
-        public CompetenceValue()
-        {
-            Id = Guid.NewGuid().ToString();
-            Competence = null;
-            Value = null;
-        }
-
         public CompetenceValue(Competence competence, int? value)
         {
-            Id = Guid.NewGuid().ToString();
             Competence = competence;
             Value = value;
         }
+        public CompetenceValue(){}
     }
 }

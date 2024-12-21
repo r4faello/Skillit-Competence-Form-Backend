@@ -8,6 +8,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using System.Text;
 using DotNetEnv;
+using Microsoft.AspNetCore.Hosting;
 
 namespace CompetenceForm
 {
@@ -17,8 +18,16 @@ namespace CompetenceForm
         {
             var builder = WebApplication.CreateBuilder(args);
 
+
             Env.Load();
-            builder.Configuration.AddJsonFile("appsettings.json", optional: true, reloadOnChange: true).AddEnvironmentVariables();
+            builder.Configuration
+                .AddJsonFile("appsettings.json", optional: true, reloadOnChange: true)
+            .AddEnvironmentVariables();
+
+            
+
+
+
 
             builder.Services.AddDbContext<ApplicationDbContext>(options =>
                 options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection"),
@@ -69,6 +78,7 @@ namespace CompetenceForm
             builder.Services.AddSwaggerGen();
 
 
+
             builder.Services.AddScoped<IUserRepository, UserRepository>();
             builder.Services.AddScoped<ICompetenceRepository, CompetenceRepository>();
 
@@ -77,6 +87,8 @@ namespace CompetenceForm
             builder.Services.AddScoped<IAuthService, AuthService>();
             builder.Services.AddScoped<ICompetenceService, CompetenceService>();
 
+            builder.Services.AddMediatR(cfg => cfg.RegisterServicesFromAssembly(typeof(Program).Assembly));
+            
             var app = builder.Build();
 
             // Configure the HTTP request pipeline.

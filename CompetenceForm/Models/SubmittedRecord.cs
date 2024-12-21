@@ -1,31 +1,14 @@
-﻿using Microsoft.AspNetCore.Authentication;
-
-namespace CompetenceForm.Models
+﻿namespace CompetenceForm.Models
 {
     public class SubmittedRecord
     {
-        public string Id { get; set; }
-
-        public string AuthorId { get; set; }
+        public string Id { get; private set; } = Guid.NewGuid().ToString();
         public User? Author { get; set; }
+        public string? AuthorId { get; set; }
+        public string CompetenceSetId { get; set; } = string.Empty;
+        public List<CompetenceValue> CompetenceValues { get; set; } = new List<CompetenceValue>();
+        public DateTime SubmittedAt { get; set; } = DateTime.Now;
 
-        public string CompetenceSetId { get; set; }
-
-        public List<CompetenceValue> CompetenceValues { get; set; }
-
-
-        public DateTime SubmittedAt { get; set; }
-
-
-
-        public SubmittedRecord()
-        {
-            Id = Guid.NewGuid().ToString();
-            Author = null;
-            CompetenceSetId = "";
-            CompetenceValues = new List<CompetenceValue>();
-            SubmittedAt = DateTime.Now;
-        }
 
         public SubmittedRecord(User? author, string competenceSetId, List<CompetenceValue> competenceValues)
         {
@@ -34,5 +17,6 @@ namespace CompetenceForm.Models
             CompetenceSetId = competenceSetId;
             CompetenceValues = competenceValues;
         }
+        public SubmittedRecord(){}
     }
 }
