@@ -28,7 +28,8 @@ namespace CompetenceForm.Controllers
             if (userId == null) { return null; }
 
             var userQuery = new UserQuery { IncludeDrafts = true };
-            var (userGetResult, user) = await _userService.GetUserByIdAsync(userId, userQuery);
+            var userGetResult = await _userService.GetUserByIdAsync(userId, userQuery);
+            var user = userGetResult.Data;
             return userGetResult.IsSuccess ? user : null;
         }
 
@@ -39,7 +40,7 @@ namespace CompetenceForm.Controllers
             var user = await GetUserAsync();
             if (user == null || !user.IsAdmin) { return Unauthorized(); }
 
-            var result = await _competenceService.SpitSubmittedRecords();
+            var result = await _competenceService.GetSubmittedRecordsAsync();
             if (!result.IsSuccess) { return BadRequest(result.Message); }
             var records = result.Data;
 
@@ -53,7 +54,7 @@ namespace CompetenceForm.Controllers
             var user = await GetUserAsync();
             if (user == null || !user.IsAdmin) { return Unauthorized(); }
 
-            var result = await _competenceService.GetUnfinishedUserCount();
+            var result = await _competenceService.GetUnfinishedUserCountAsync();
             if (!result.IsSuccess){return BadRequest(result.Message);}
             var count = result.Data;
 

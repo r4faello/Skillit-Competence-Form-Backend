@@ -1,256 +1,240 @@
 ﻿using AutoMapper;
 using CompetenceForm.Common;
 using CompetenceForm.DTOs;
-using CompetenceForm.Migrations;
 using CompetenceForm.Models;
 using CompetenceForm.Repositories;
 using CompetenceForm.Repositories._Queries;
+using CompetenceForm.Services.CompetenceService;
 using static CompetenceForm.Repositories.CompetenceRepository;
 
-namespace CompetenceForm.Services.CompetenceService
-{
-    public class CompetenceService : ICompetenceService
-    {
-        private readonly ICompetenceRepository _competenceRepository;
-        private readonly IUserRepository _userRepository;
+namespace CompetenceForm.Services.CompetenceService;
 
-        public CompetenceService(ICompetenceRepository competenceRepository, IUserRepository userRepository)
+public class CompetenceService : ICompetenceService
+{
+    private readonly ICompetenceRepository _competenceRepository;
+
+    public CompetenceService(ICompetenceRepository competenceRepository)
+    {
+        _competenceRepository = competenceRepository;
+    }
+
+    public async Task<ServiceResult> SaveAnsweredQuestionAsync(User user, string competenceSetId, string competenceId, string answerId)
+    {
+        // Retrieve and validate the competence set
+        var competenceSetQuery = new CompetenceSetQuery
         {
-            _competenceRepository = competenceRepository;
-            _userRepository = userRepository;
+            IncludeCompetences = true,
+            IncludeCompetenceQuestion = true,
+            IncludeCompetenceQuestionAnswerOptions = true
+        };
+
+        var competenceSetResult = await _competenceRepository.GetCompetenceSetByIdAsync(competenceSetId, competenceSetQuery);
+        if (!competenceSetResult.IsSuccess || competenceSetResult.Data == null)
+        {
+            return ServiceResult.Failure("Invalid competence set ID.");
         }
 
-        public async Task<ServiceResult> SaveAnsweredQuestion(User user, string competenceSetId, string competenceId, string answerId)
+        var competence = competenceSetResult.Data.Competences.FirstOrDefault(c => c.Id == competenceId);
+        if (competence == null || competence.Question == null)
         {
-            // Check if given competence set ID is valid
-            var competenceSetQuery = new CompetenceSetQuery
+            return ServiceResult.Failure("Invalid competence or missing question.");
+        }
+
+        var answer = competence.Question.AnswerOptions.FirstOrDefault(a => a.Id == answerId);
+        if (answer == null)
+        {
+            return ServiceResult.Failure("Answer option not found.");
+        }
+
+        // Retrieve or create the draft
+        var draft = user.Drafts.FirstOrDefault(d => d.CompetenceSet.Id == competenceSetId);
+        if (draft == null)
+        {
+            var draftCreationResult = await _competenceRepository.CreateNewDraftAsync(user, competenceSetResult.Data);
+            if (!draftCreationResult.IsSuccess || draftCreationResult.Data == null)
             {
-                IncludeCompetences = true,
-                IncludeCompetenceQuestion = true,
-                IncludeCompetenceQuestionAnswerOptions = true
-            };
-
-            var result = await _competenceRepository.GetCompetenceSetByIdAsync(competenceSetId, competenceSetQuery);
-            if (!result.IsSuccess || result.Data == null) { return result; }
-
-            // Check if given competence ID and question object itself is valid
-            var competence = result.Data.Competences.FirstOrDefault(c => c.Id == competenceId);
-            if (competence == null) { return ServiceResult.Failure("Competence not found"); }
-            if (competence.Question == null) { return ServiceResult.Failure("Answered question is not valid."); }
-
-            // Check if answerId is among options for current question
-            var answer = competence.Question.AnswerOptions.FirstOrDefault(a => a.Id == answerId);
-            if (answer == null) { return ServiceResult.Failure("Answer option not found"); }
-
-            // Retrieve the user's draft linked to the competence set ID; create a new draft if it doesn't exist
-            var draft = user.Drafts.FirstOrDefault(d => d.CompetenceSet.Id == competenceSetId);
-            if (draft == null)
-            {
-                var draftCreationResult = await _competenceRepository.CreateNewDraftAsync(user, result.Data);
-                if (!draftCreationResult.IsSuccess || draftCreationResult.Data == null) { return draftCreationResult; }
-
-                draft = draftCreationResult.Data;
+                return draftCreationResult;
             }
+            draft = draftCreationResult.Data;
+        }
 
+        // Load the full draft details
+        var draftQuery = new DraftQuery
+        {
+            IncludeQuestionAnswerPairs = true,
+            IncludeQuestionAnswerPairQuestion = true,
+            IncludeQuestionAnswerPairAnswer = true,
+            IncludeAuthor = true
+        };
+
+        var draftResult = await _competenceRepository.GetDraftByIdAsync(draft.Id, draftQuery);
+        if (!draftResult.IsSuccess || draftResult.Data == null)
+        {
+            return draftResult;
+        }
+
+        await _competenceRepository.RegisterAnsweredQuestionAsync(draftResult.Data, competence.Question, answer);
+
+        return ServiceResult.Success();
+    }
+
+    public async Task<ServiceResult<CompetenceSetDto>> GetCompetenceSetAsync(User user)
+    {
+        var competenceSetResult = await _competenceRepository.GetCurrentCompetenceSetAsync();
+        if (!competenceSetResult.IsSuccess || competenceSetResult.Data == null)
+        {
+            return ServiceResult<CompetenceSetDto>.Failure("Competence set not found.");
+        }
+
+        var currentDraft = user.Drafts.FirstOrDefault(d => d.CompetenceSet.Id == competenceSetResult.Data.Id);
+        if (currentDraft != null)
+        {
             var draftQuery = new DraftQuery
             {
                 IncludeQuestionAnswerPairs = true,
                 IncludeQuestionAnswerPairQuestion = true,
-                IncludeQuestionAnswerPairAnswer = true,
-                IncludeAuthor = true
+                IncludeQuestionAnswerPairAnswer = true
             };
 
-            var getDraftResult = await _competenceRepository.GetDraftByIdAsync(draft.Id, draftQuery);
-            if (!getDraftResult.IsSuccess || getDraftResult.Data == null) { return getDraftResult; }
-
-            draft = getDraftResult.Data;
-
-            await _competenceRepository.RegisterAnsweredQuestionAsync(draft, competence.Question, answer);
-
-            return ServiceResult.Success();
+            var draftResult = await _competenceRepository.GetDraftByIdAsync(currentDraft.Id, draftQuery);
+            if (draftResult.IsSuccess)
+            {
+                currentDraft = draftResult.Data;
+            }
         }
 
-        public async Task<ServiceResult<CompetenceSetDto>> SpitCompetenceSet(User user)
+        var competenceSetDto = new CompetenceSetDto
         {
-            var currentCompetenceSetResult = await _competenceRepository.GetCurrentCompetenceSetAsync();
-
-            if (!currentCompetenceSetResult.IsSuccess || currentCompetenceSetResult.Data == null)
-            {
-                return ServiceResult<CompetenceSetDto>.Failure("Competence set not found");
-            }
-            else if(currentCompetenceSetResult.Data.Competences == null || currentCompetenceSetResult.Data.Competences.Count == 0)
-            {
-                return ServiceResult<CompetenceSetDto>.Failure("No competences found in specified competence set");
-            }
-
-            var currentCompSetDraft = user.Drafts.FirstOrDefault(d => d.CompetenceSet.Id == currentCompetenceSetResult.Data.Id);
-            if(currentCompSetDraft != null)
-            {
-                DraftQuery draftQuery = new DraftQuery
+            CompetenceSetId = competenceSetResult.Data.Id,
+            Competences = competenceSetResult.Data.Competences
+                .Where(c => c.Question != null)
+                .Select(c => new CompetenceDto
                 {
-                    IncludeQuestionAnswerPairs = true,
-                    IncludeQuestionAnswerPairQuestion = true,
-                    IncludeQuestionAnswerPairAnswer = true
-                };
-
-                var getDraftResult = await _competenceRepository.GetDraftByIdAsync(currentCompSetDraft.Id, draftQuery);
-                if(!getDraftResult.IsSuccess || getDraftResult.Data == null) { return ServiceResult<CompetenceSetDto>.Failure(getDraftResult.Message); }
-
-                currentCompSetDraft = getDraftResult.Data;
-            }
-
-            var currentCompetenceSet = currentCompetenceSetResult.Data;
-            
-            
-            var response = new CompetenceSetDto
-            {
-                CompetenceSetId = currentCompetenceSet.Id,
-                Competences = currentCompetenceSet.Competences
-                    .Where(c => c.Question != null)
-                    .Select(c => new CompetenceDto
+                    CompetenceId = c.Id,
+                    Question = c.Question.Title,
+                    AnswerOptions = c.Question.AnswerOptions.Select(a => new AnswerOptionDto
                     {
-                        CompetenceId = c.Id,
-                        Question = c.Question.Title,
-                        AnswerOptions = c.Question.AnswerOptions.Select(a => new AnswerOptionDto
-                        {
-                            AnswerId = a.Id,
-                            Answer = a.Title,
-                            Description = a.Description
-                        }).ToList(),
-                        DraftedAnswerId = currentCompSetDraft == null ? "" :
-                            currentCompSetDraft.QuestionAnswerPairs.Any(a => a.Question.Id == c.Question.Id) ?
-                            currentCompSetDraft.QuestionAnswerPairs.First(a => a.Question.Id == c.Question.Id).Answer.Id : ""
-                    }).ToList()
-            };
+                        AnswerId = a.Id,
+                        Answer = a.Title,
+                        Description = a.Description
+                    }).ToList(),
+                    DraftedAnswerId = currentDraft?.QuestionAnswerPairs
+                        .FirstOrDefault(qap => qap.Question.Id == c.Question.Id)?.Answer.Id ?? string.Empty
+                }).ToList()
+        };
 
-            return ServiceResult<CompetenceSetDto>.Success(response);
-        }
+        return ServiceResult<CompetenceSetDto>.Success(competenceSetDto);
+    }
 
-        public async Task<ServiceResult> Seed(int competenceCount, (int, int) answerCountRange, (int, int) answerImpactRange)
+    public async Task<ServiceResult> SeedCompetencesAsync(int competenceCount, (int, int) answerCountRange, (int, int) answerImpactRange)
+    {
+        var wipeResult = await _competenceRepository.WipeCompetenceSetsAsync();
+        if (!wipeResult.IsSuccess)
         {
-            var wipeResult = await _competenceRepository.WipeCompetenceSetsAsync();
-            if (!wipeResult.IsSuccess)
-            {
-                return ServiceResult.Failure("Deletion failed.");
-            }
-
-
-            var createRandomCompSetResult = await _competenceRepository.CreateRandomCompetenceSetAsync(competenceCount, answerCountRange, answerImpactRange);
-            if (!createRandomCompSetResult.IsSuccess)
-            {
-                return ServiceResult.Failure("Internal error.");
-            }
-
-            return ServiceResult.Success();
+            return ServiceResult.Failure("Failed to delete existing competence sets.");
         }
 
-        public async Task<string> GetCurrentCompetenceSetId()
+        var createResult = await _competenceRepository.CreateRandomCompetenceSetAsync(competenceCount, answerCountRange, answerImpactRange);
+        return createResult.IsSuccess ? ServiceResult.Success() : ServiceResult.Failure("Failed to seed competence sets.");
+    }
+
+    public async Task<ServiceResult<SubmittedRecordDto>> FinalizeDraftAsync(User user)
+    {
+        if (user == null)
         {
-            var result = await _competenceRepository.GetCurrentCompetenceSetAsync();
-            if (!result.IsSuccess || result.Data == null)
-            {
-                return "";
-            }
-
-            return result.Data.Id;
+            return ServiceResult<SubmittedRecordDto>.Failure("Invalid user.");
         }
 
-        public Task<ServiceResult> DeleteUserDrafts(User user)
+        var competenceSetResult = await _competenceRepository.GetCurrentCompetenceSetAsync();
+        if (!competenceSetResult.IsSuccess || competenceSetResult.Data == null)
         {
-            var result = _competenceRepository.DeleteUserDraftsAsync(user);
-
-            return result;
+            return ServiceResult<SubmittedRecordDto>.Failure("Competence set not found.");
         }
 
-        public async Task<ServiceResult<SubmittedRecordDto>> FinalizeDraft(User user)
+        var finalizeResult = await _competenceRepository.FinalizeDraftAsync(user, competenceSetResult.Data.Id);
+        if (!finalizeResult.IsSuccess || finalizeResult.Data == null)
         {
-            if (user == null) { return ServiceResult<SubmittedRecordDto>.Failure("User not valid"); }
-
-            var currentCompetenceSetResult = await _competenceRepository.GetCurrentCompetenceSetAsync();
-            if (!currentCompetenceSetResult.IsSuccess || currentCompetenceSetResult.Data == null) { return ServiceResult<SubmittedRecordDto>.Failure("Current competence set was not found."); }
-
-            var finalizeDraftResult = await _competenceRepository.FinalizeDraftAsync(user, currentCompetenceSetResult.Data.Id);
-            if (!finalizeDraftResult.IsSuccess || finalizeDraftResult.Data == null) { return ServiceResult<SubmittedRecordDto>.Failure(finalizeDraftResult.Message); }
-            var submittedRecord = finalizeDraftResult.Data;
-
-
-            var deletionResult = await _competenceRepository.DeleteUserDraftsAsync(user);
-            if (!deletionResult.IsSuccess) { return ServiceResult<SubmittedRecordDto>.Failure(deletionResult.Message); }
-
-            // Create SubmittedRecordDto from submittedRecord
-            var submittedRecordDto = new SubmittedRecordDto
-            {
-                RecordId = submittedRecord.Id,
-                AuthorId = submittedRecord.AuthorId,
-                AuthorUsername = submittedRecord.Author?.Username ?? "Unknown User",
-                Competences = submittedRecord.CompetenceValues.Select(cv => new CompetenceValueDto
-                {
-                    CompetenceId = cv.Competence?.Id ?? Guid.Empty.ToString(),
-                    CompetenceTitle = cv.Competence?.Title ?? "Unknown Skill",
-                    Value = cv.Value
-                }).ToList(),
-                SubmittedAt = submittedRecord.SubmittedAt
-            };
-
-            return ServiceResult<SubmittedRecordDto>.Success(submittedRecordDto);
+            return ServiceResult<SubmittedRecordDto>.Failure(finalizeResult.Message);
         }
 
-        public async Task<ServiceResult<List<SubmittedRecordDto>>> SpitSubmittedRecords()
+        var deleteResult = await _competenceRepository.DeleteUserDraftsAsync(user);
+        if (!deleteResult.IsSuccess)
         {
-            var submittedRecordsResult = await _competenceRepository.GetAllSubmittedRecordsAsync();
-
-            if (!submittedRecordsResult.IsSuccess || submittedRecordsResult.Data == null || !submittedRecordsResult.Data.Any())
-            {
-                return ServiceResult<List<SubmittedRecordDto>>.Failure("No submitted records found");
-            }
-
-            var response = submittedRecordsResult.Data.Select(submittedRecord => new SubmittedRecordDto
-            {
-                RecordId = submittedRecord.Id,
-                AuthorId = submittedRecord.AuthorId,
-                AuthorUsername = submittedRecord.Author?.Username ?? "Unknown User",
-                Competences = submittedRecord.CompetenceValues.Select(cv => new CompetenceValueDto
-                {
-                    CompetenceId = cv.Competence?.Id ?? Guid.Empty.ToString(),
-                    CompetenceTitle = cv.Competence?.Title ?? "Unknown Skill",
-                    Value = cv.Value
-                }).ToList(),
-                SubmittedAt = submittedRecord.SubmittedAt
-            }).ToList();
-
-            return ServiceResult<List<SubmittedRecordDto>>.Success(response);
+            return ServiceResult<SubmittedRecordDto>.Failure(deleteResult.Message);
         }
 
-        public async Task<ServiceResult<int>> GetUnfinishedUserCount()
+        var submittedRecordDto = new SubmittedRecordDto
         {
-            var result = await _competenceRepository.GetUnfinishedUserCountAsync();
-
-            if (!result.IsSuccess)
+            RecordId = finalizeResult.Data.Id,
+            AuthorId = finalizeResult.Data.AuthorId,
+            AuthorUsername = finalizeResult.Data.Author?.Username ?? "Unknown User",
+            Competences = finalizeResult.Data.CompetenceValues.Select(cv => new CompetenceValueDto
             {
-                return ServiceResult<int>.Failure(result.Message);
-            }
+                CompetenceId = cv.Competence?.Id ?? string.Empty,
+                CompetenceTitle = cv.Competence?.Title ?? "Unknown Competence",
+                Value = cv.Value
+            }).ToList(),
+            SubmittedAt = finalizeResult.Data.SubmittedAt
+        };
 
-            return ServiceResult<int>.Success(result.Data);
-        }
+        return ServiceResult<SubmittedRecordDto>.Success(submittedRecordDto);
+    }
 
-        public async Task<ServiceResult> SeedCompetenceSetFromJsonAsync(CompetenceSetJson jsonData)
+    public async Task<ServiceResult<List<SubmittedRecordDto>>> GetSubmittedRecordsAsync()
+    {
+        var submittedRecordsResult = await _competenceRepository.GetAllSubmittedRecordsAsync();
+        if (!submittedRecordsResult.IsSuccess || submittedRecordsResult.Data == null || !submittedRecordsResult.Data.Any())
         {
-            var wipeResult = await _competenceRepository.WipeCompetenceSetsAsync();
-
-            if (!wipeResult.IsSuccess)
-            {
-                return wipeResult;
-            }
-
-
-            var createCompetenceSetResult = await _competenceRepository.CreateCompetenceSetFromJsonAsync(jsonData);
-
-            if (!createCompetenceSetResult.IsSuccess)
-            {
-                return ServiceResult.Failure("Failed to seed competence set.");
-            }
-
-            return ServiceResult.Success();
+            return ServiceResult<List<SubmittedRecordDto>>.Failure("No submitted records found.");
         }
+
+        var submittedRecords = submittedRecordsResult.Data.Select(record => new SubmittedRecordDto
+        {
+            RecordId = record.Id,
+            AuthorId = record.AuthorId,
+            AuthorUsername = record.Author?.Username ?? "Unknown User",
+            Competences = record.CompetenceValues.Select(cv => new CompetenceValueDto
+            {
+                CompetenceId = cv.Competence?.Id ?? string.Empty,
+                CompetenceTitle = cv.Competence?.Title ?? "Unknown Competence",
+                Value = cv.Value
+            }).ToList(),
+            SubmittedAt = record.SubmittedAt
+        }).ToList();
+
+        return ServiceResult<List<SubmittedRecordDto>>.Success(submittedRecords);
+    }
+
+    public async Task<ServiceResult<int>> GetUnfinishedUserCountAsync()
+    {
+        var result = await _competenceRepository.GetUnfinishedUserCountAsync();
+        return result.IsSuccess
+            ? ServiceResult<int>.Success(result.Data)
+            : ServiceResult<int>.Failure(result.Message);
+    }
+
+    public async Task<ServiceResult> SeedCompetenceSetFromJsonAsync(CompetenceSetJson jsonData)
+    {
+        var wipeResult = await _competenceRepository.WipeCompetenceSetsAsync();
+        if (!wipeResult.IsSuccess)
+        {
+            return wipeResult;
+        }
+
+        var createResult = await _competenceRepository.CreateCompetenceSetFromJsonAsync(jsonData);
+        return createResult.IsSuccess
+            ? ServiceResult.Success()
+            : ServiceResult.Failure("Failed to seed competence set.");
+    }
+
+    public Task<ServiceResult> DeleteUserDraftsAsync(User user)
+    {
+        return _competenceRepository.DeleteUserDraftsAsync(user);
+    }
+
+    public async Task<string> GetCurrentCompetenceSetIdAsync()
+    {
+        var result = await _competenceRepository.GetCurrentCompetenceSetAsync();
+        return result.IsSuccess && result.Data != null ? result.Data.Id : string.Empty;
     }
 }

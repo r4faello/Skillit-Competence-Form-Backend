@@ -4,10 +4,8 @@ using CompetenceForm.Repositories._Queries;
 using CompetenceForm.Services.CompetenceService;
 using CompetenceForm.Services.UserService;
 using Microsoft.AspNetCore.Authorization;
-using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using System.Security.Claims;
-using CompetenceForm.Controllers;
 using static CompetenceForm.Repositories.CompetenceRepository;
 
 namespace CompetenceForm.Controllers
@@ -31,8 +29,8 @@ namespace CompetenceForm.Controllers
             if (userId == null) { return null; }
 
             var userQuery = new UserQuery { IncludeDrafts = true };
-            var (userGetResult, user) = await _userService.GetUserByIdAsync(userId, userQuery);
-            return userGetResult.IsSuccess ? user : null;
+            var userGetResult = await _userService.GetUserByIdAsync(userId, userQuery);
+            return userGetResult.IsSuccess ? userGetResult.Data : null;
         }
 
         [Authorize]
@@ -42,13 +40,13 @@ namespace CompetenceForm.Controllers
             var user = await GetUserAsync();
             if(user == null) { return Unauthorized(); }
 
-            var currentCompSetId = await _competenceService.GetCurrentCompetenceSetId();
+            var currentCompSetId = await _competenceService.GetCurrentCompetenceSetIdAsync();
             var currentCompSetDraft = user.Drafts.FirstOrDefault(d => d.CompetenceSet.Id == currentCompSetId);
 
             var currentCompSetDraftId = "";
             if(currentCompSetDraft != null){currentCompSetDraftId = currentCompSetDraft.Id;}
 
-            var result = await _competenceService.SpitCompetenceSet(user);
+            var result = await _competenceService.GetCompetenceSetAsync(user);
             if (result.IsSuccess == false){return NotFound(result.Message);}
             var response = result.Data;
 
@@ -63,7 +61,7 @@ namespace CompetenceForm.Controllers
             if (user == null) { return Unauthorized(); }
 
             // Saving answer
-            var result = await _competenceService.SaveAnsweredQuestion(user, details.CompetenceSetId, details.CompetenceId, details.AnswerId);
+            var result = await _competenceService.SaveAnsweredQuestionAsync(user, details.CompetenceSetId, details.CompetenceId, details.AnswerId);
             if (!result.IsSuccess)
             {
                 return BadRequest(result.Message);
@@ -79,7 +77,7 @@ namespace CompetenceForm.Controllers
             var user = await GetUserAsync();
             if (user == null) { return Unauthorized(); }
 
-            var result = await _competenceService.DeleteUserDrafts(user);
+            var result = await _competenceService.DeleteUserDraftsAsync(user);
 
             if (!result.IsSuccess)
             {
@@ -96,7 +94,7 @@ namespace CompetenceForm.Controllers
             var user = await GetUserAsync();
             if(user == null) { return Unauthorized(); }
 
-            var result = await _competenceService.FinalizeDraft(user);
+            var result = await _competenceService.FinalizeDraftAsync(user);
             if (!result.IsSuccess){ return BadRequest(result.Message); }
             var record = result.Data;
 

@@ -16,20 +16,19 @@ namespace CompetenceForm.Handlers
 
         public async Task<ServiceResult<string>> Handle(RegisterNewUserCommand request, CancellationToken cancellationToken)
         {
-            var (createResult, _) = await _userService.CreateUserAsync(request.Username, request.Password);
+            var createResult = await _userService.CreateUserAsync(request.Username, request.Password);
             if (!createResult.IsSuccess)
             {
                 return ServiceResult<string>.Failure(createResult.Message);
             }
 
-            var (authResult, jwtToken) = await _userService.GenerateJwtAsync(request.Username, request.Password);
-            if (!authResult.IsSuccess)
+            var authResult = await _userService.GenerateJwtAsync(request.Username, request.Password);
+            if (!authResult.IsSuccess || authResult.Data == null)
             {
                 return ServiceResult<string>.Failure(authResult.Message);
             }
 
-            // Return a success result with the JWT token
-            return ServiceResult<string>.Success(jwtToken);
+            return ServiceResult<string>.Success(authResult.Data);
         }
 
     }
