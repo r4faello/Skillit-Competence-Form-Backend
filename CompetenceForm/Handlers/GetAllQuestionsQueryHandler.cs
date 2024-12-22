@@ -28,5 +28,4 @@ namespace CompetenceForm.Handlers
             return result;
         }
     }
-
 }

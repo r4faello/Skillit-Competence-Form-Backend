@@ -17,13 +17,11 @@ namespace CompetenceForm.Controllers
     [ApiController]
     public class QuestionsController : ControllerBase
     {
-        private readonly ICompetenceService _competenceService;
         private readonly IUserService _userService;
         private readonly IMediator _mediator;
 
-        public QuestionsController(ICompetenceService competenceService, IUserService userService, IMediator mediator)
+        public QuestionsController(IUserService userService, IMediator mediator)
         {
-            _competenceService = competenceService;
             _userService = userService;
             _mediator = mediator;
         }

@@ -1,8 +1,10 @@
 ﻿using CompetenceForm.DTOs;
 using CompetenceForm.Models;
+using CompetenceForm.Queries;
 using CompetenceForm.Repositories._Queries;
 using CompetenceForm.Services.CompetenceService;
 using CompetenceForm.Services.UserService;
+using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
@@ -15,11 +17,11 @@ namespace CompetenceForm.Controllers
     public class AdminController : ControllerBase
     {
         private IUserService _userService;
-        private ICompetenceService _competenceService;
-        public AdminController(IUserService userService, ICompetenceService competenceService)
+        private IMediator _mediator;
+        public AdminController(IUserService userService, IMediator mediator)
         {
             _userService = userService;
-            _competenceService = competenceService;
+            _mediator = mediator;
         }
 
         private async Task<User?> GetUserAsync()
@@ -38,27 +40,42 @@ namespace CompetenceForm.Controllers
         public async Task<ActionResult> GetSurveyResults()
         {
             var user = await GetUserAsync();
-            if (user == null || !user.IsAdmin) { return Unauthorized(); }
+            if (user == null || !user.IsAdmin)
+            {
+                return Unauthorized();
+            }
 
-            var result = await _competenceService.GetSubmittedRecordsAsync();
-            if (!result.IsSuccess) { return BadRequest(result.Message); }
-            var records = result.Data;
+            var query = new GetSurveyResultsQuery();
+            var result = await _mediator.Send(query);
 
-            return Ok(records);
+            if (!result.IsSuccess)
+            {
+                return BadRequest(result.Message);
+            }
+
+            return Ok(result.Data);
         }
+
 
         [Authorize]
         [HttpGet("unfinishedUserCount", Name = "GetUnfinishedUserCount")]
         public async Task<ActionResult> GetUnfinishedUserCount()
         {
             var user = await GetUserAsync();
-            if (user == null || !user.IsAdmin) { return Unauthorized(); }
+            if (user == null || !user.IsAdmin)
+            {
+                return Unauthorized();
+            }
 
-            var result = await _competenceService.GetUnfinishedUserCountAsync();
-            if (!result.IsSuccess){return BadRequest(result.Message);}
-            var count = result.Data;
+            var query = new GetUnfinishedUserCountQuery();
+            var result = await _mediator.Send(query);
 
-            return Ok(count);
+            if (!result.IsSuccess)
+            {
+                return BadRequest(result.Message);
+            }
+
+            return Ok(result.Data);
         }
     }
 }
