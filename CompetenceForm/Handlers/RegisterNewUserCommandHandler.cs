@@ -5,11 +5,11 @@ using MediatR;
 
 namespace CompetenceForm.Handlers
 {
-    public class RegisterNewUserHandler : IRequestHandler<RegisterNewUserCommand, ServiceResult<string>>
+    public class RegisterNewUserCommandHandler : IRequestHandler<RegisterNewUserCommand, ServiceResult<string>>
     {
         private readonly IUserService _userService;
 
-        public RegisterNewUserHandler(IUserService userService)
+        public RegisterNewUserCommandHandler(IUserService userService)
         {
             _userService = userService;
         }

@@ -1,8 +1,11 @@
-﻿using CompetenceForm.DTOs;
+﻿using CompetenceForm.Commands;
+using CompetenceForm.DTOs;
 using CompetenceForm.Models;
+using CompetenceForm.Queries;
 using CompetenceForm.Repositories._Queries;
 using CompetenceForm.Services.CompetenceService;
 using CompetenceForm.Services.UserService;
+using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using System.Security.Claims;
@@ -16,11 +19,13 @@ namespace CompetenceForm.Controllers
     {
         private readonly ICompetenceService _competenceService;
         private readonly IUserService _userService;
+        private readonly IMediator _mediator;
 
-        public QuestionsController(ICompetenceService competenceService, IUserService userService)
+        public QuestionsController(ICompetenceService competenceService, IUserService userService, IMediator mediator)
         {
             _competenceService = competenceService;
             _userService = userService;
+            _mediator = mediator;
         }
 
         private async Task<User?> GetUserAsync()
@@ -38,30 +43,36 @@ namespace CompetenceForm.Controllers
         public async Task<ActionResult<CompetenceSetDto>> GetAllQuestions()
         {
             var user = await GetUserAsync();
-            if(user == null) { return Unauthorized(); }
+            if (user == null)
+            {
+                return Unauthorized();
+            }
 
-            var currentCompSetId = await _competenceService.GetCurrentCompetenceSetIdAsync();
-            var currentCompSetDraft = user.Drafts.FirstOrDefault(d => d.CompetenceSet.Id == currentCompSetId);
+            var query = new GetAllQuestionsQuery(user);
+            var result = await _mediator.Send(query);
 
-            var currentCompSetDraftId = "";
-            if(currentCompSetDraft != null){currentCompSetDraftId = currentCompSetDraft.Id;}
+            if (!result.IsSuccess)
+            {
+                return NotFound(result.Message);
+            }
 
-            var result = await _competenceService.GetCompetenceSetAsync(user);
-            if (result.IsSuccess == false){return NotFound(result.Message);}
-            var response = result.Data;
-
-            return Ok(response);
+            return Ok(result.Data);
         }
+
 
         [Authorize]
         [HttpPost("SaveAnsweredQuestion", Name = "SaveAnsweredQuestion")]
         public async Task<ActionResult> SaveDraft([FromBody] SaveAnsweredQuestionDto details)
         {
             var user = await GetUserAsync();
-            if (user == null) { return Unauthorized(); }
+            if (user == null)
+            {
+                return Unauthorized();
+            }
 
-            // Saving answer
-            var result = await _competenceService.SaveAnsweredQuestionAsync(user, details.CompetenceSetId, details.CompetenceId, details.AnswerId);
+            var command = new SaveAnsweredQuestionCommand(user, details.CompetenceSetId, details.CompetenceId, details.AnswerId);
+            var result = await _mediator.Send(command);
+
             if (!result.IsSuccess)
             {
                 return BadRequest(result.Message);
@@ -70,14 +81,19 @@ namespace CompetenceForm.Controllers
             return Ok();
         }
 
+
         [Authorize]
         [HttpPost("deleteDrafts", Name = "DeleteDraft")]
         public async Task<ActionResult> DeleteDraft()
         {
             var user = await GetUserAsync();
-            if (user == null) { return Unauthorized(); }
+            if (user == null)
+            {
+                return Unauthorized();
+            }
 
-            var result = await _competenceService.DeleteUserDraftsAsync(user);
+            var command = new DeleteDraftCommand(user);
+            var result = await _mediator.Send(command);
 
             if (!result.IsSuccess)
             {
@@ -87,25 +103,35 @@ namespace CompetenceForm.Controllers
             return Ok();
         }
 
+
         [Authorize]
         [HttpPost("finalizeDraft", Name = "FinalizeDraft")]
         public async Task<ActionResult> FinalizeResult()
         {
             var user = await GetUserAsync();
-            if(user == null) { return Unauthorized(); }
+            if (user == null)
+            {
+                return Unauthorized();
+            }
 
-            var result = await _competenceService.FinalizeDraftAsync(user);
-            if (!result.IsSuccess){ return BadRequest(result.Message); }
-            var record = result.Data;
+            var command = new FinalizeDraftCommand(user);
+            var result = await _mediator.Send(command);
 
-            return Ok(record);
+            if (!result.IsSuccess)
+            {
+                return BadRequest(result.Message);
+            }
+
+            return Ok(result.Data);
         }
+
 
 
         [HttpPost("Seed", Name = "Seed")]
         public async Task<ActionResult> SeedCompetences([FromBody] CompetenceSetJson jsonData)
         {
-            var result = await _competenceService.SeedCompetenceSetFromJsonAsync(jsonData);
+            var command = new SeedCompetencesCommand(jsonData);
+            var result = await _mediator.Send(command);
 
             if (!result.IsSuccess)
             {
@@ -115,5 +141,4 @@ namespace CompetenceForm.Controllers
             return Ok("Competence set has been successfully seeded.");
         }
     }
-
 }

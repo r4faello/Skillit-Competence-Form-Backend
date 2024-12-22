@@ -14,11 +14,9 @@ namespace CompetenceForm.Controllers
     [ApiController]
     public class UserController : ControllerBase
     {
-        private readonly IUserService _userService;
         private readonly IMediator _mediator;
-        public UserController(IUserService userService, IMediator mediator)
+        public UserController(IMediator mediator)
         {
-            _userService = userService;
             _mediator = mediator;
         }
 
