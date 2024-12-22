@@ -6,9 +6,9 @@ namespace CompetenceForm.Services.UserService
 {
     public interface IUserService
     {
-        public Task<(Result, User?)> GetUserByIdAsync(string userId, UserQuery query);
-        public Task<(Result, User?)> CreateUserAsync(string username, string password);
-        public Task<(Result, string)> GenerateJwtAsync(string username, string password);
+        public Task<(ServiceResult, User?)> GetUserByIdAsync(string userId, UserQuery query);
+        public Task<(ServiceResult, User?)> CreateUserAsync(string username, string password);
+        public Task<(ServiceResult, string)> GenerateJwtAsync(string username, string password);
         bool IsPasswordCorrect(string password, string storedHashedPassword, string storedSalt);
     }
 }

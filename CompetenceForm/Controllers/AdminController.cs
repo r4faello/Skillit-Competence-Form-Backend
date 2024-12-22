@@ -39,9 +39,9 @@ namespace CompetenceForm.Controllers
             var user = await GetUserAsync();
             if (user == null || !user.IsAdmin) { return Unauthorized(); }
 
-            var (result, records) = await _competenceService.SpitSubmittedRecords();
-
+            var result = await _competenceService.SpitSubmittedRecords();
             if (!result.IsSuccess) { return BadRequest(result.Message); }
+            var records = result.Data;
 
             return Ok(records);
         }
@@ -53,16 +53,11 @@ namespace CompetenceForm.Controllers
             var user = await GetUserAsync();
             if (user == null || !user.IsAdmin) { return Unauthorized(); }
 
-            var (result, count) = await _competenceService.GetUnfinishedUserCount();
-
-            if (!result.IsSuccess)
-            {
-                return BadRequest(result.Message);
-            }
+            var result = await _competenceService.GetUnfinishedUserCount();
+            if (!result.IsSuccess){return BadRequest(result.Message);}
+            var count = result.Data;
 
             return Ok(count);
         }
-
-
     }
 }

@@ -7,20 +7,18 @@ namespace CompetenceForm.Repositories
 {
     public interface ICompetenceRepository
     {
-        public Task<CompetenceSet?> GetCurrentCompetenceSetAsync();
-        public Task<CompetenceSet?> GetCompetenceSetByIdAsync(string competenceSetId, CompetenceSetQuery competenceSetQuery);
-        public Task<Result> RegisterAnsweredQuestionAsync(Draft? draft, Question question, Answer answer);
-        public Task<Draft> CreateNewDraftAsync(User author, CompetenceSet competenceSet);
-        public Task<Draft?> GetDraftByIdAsync(string draftId, DraftQuery query);
-        public Task<Result> WipeCompetenceSets();
-        public Task<(Result, Competence?)> CreateRandomCompetenceAsync((int, int) answerCountRange, (int, int) answerImpactRange);
-        public Task<(Result, CompetenceSet?)> CreateRandomCompetenceSetAsync(int competenceCount, (int, int) answerCountRange, (int, int) answerImpactRange);
-        public Task<Result> DeleteUserDrafts(User user);
-        public Task<(Result, SubmittedRecord?)> FinalizeDraftAsync(User user, string competenceSetId);
-        public Task<(Result, List<SubmittedRecord>?)> GetAllSubmittedRecords();
-        public Task<(Result, int?)> GetUnfinishedUserCount();
-        public Task<(Result, CompetenceSet?)> CreateCompetenceSetFromJsonAsync(CompetenceSetJson jsonData);
-
-
+        public Task<ServiceResult<CompetenceSet>> GetCurrentCompetenceSetAsync();
+        public Task<ServiceResult<CompetenceSet>> GetCompetenceSetByIdAsync(string competenceSetId, CompetenceSetQuery competenceSetQuery);
+        public Task<ServiceResult> RegisterAnsweredQuestionAsync(Draft? draft, Question question, Answer answer);
+        public Task<ServiceResult<Draft>> CreateNewDraftAsync(User author, CompetenceSet competenceSet);
+        public Task<ServiceResult<Draft>> GetDraftByIdAsync(string draftId, DraftQuery query);
+        public Task<ServiceResult> WipeCompetenceSetsAsync();
+        public Task<ServiceResult<Competence>> CreateRandomCompetenceAsync((int, int) answerCountRange, (int, int) answerImpactRange);
+        public Task<ServiceResult<CompetenceSet>> CreateRandomCompetenceSetAsync(int competenceCount, (int, int) answerCountRange, (int, int) answerImpactRange);
+        public Task<ServiceResult> DeleteUserDraftsAsync(User user);
+        public Task<ServiceResult<SubmittedRecord>> FinalizeDraftAsync(User user, string competenceSetId);
+        public Task<ServiceResult<List<SubmittedRecord>>> GetAllSubmittedRecordsAsync();
+        public Task<ServiceResult<int>> GetUnfinishedUserCountAsync();
+        public Task<ServiceResult<CompetenceSet>> CreateCompetenceSetFromJsonAsync(CompetenceSetJson jsonData);
     }
 }

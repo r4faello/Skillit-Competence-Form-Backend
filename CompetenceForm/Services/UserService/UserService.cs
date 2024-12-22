@@ -20,57 +20,57 @@ namespace CompetenceForm.Services.UserService
             _authService = authService;
         }
 
-        public async Task<(Result, User?)> GetUserByIdAsync(string userId, UserQuery query)
+        public async Task<(ServiceResult, User?)> GetUserByIdAsync(string userId, UserQuery query)
         {
 
             var user = await _userRepository.GetUserByIdAsync(userId, query);
             if(user == null)
             {
-                return (Result.Failure("User not found"), null);
+                return (ServiceResult.Failure("User not found"), null);
             }
 
-            return (Result.Success(), user);
+            return (ServiceResult.Success(), user);
         }
 
-        public async Task<(Result, User?)> CreateUserAsync(string username, string password)
+        public async Task<(ServiceResult, User?)> CreateUserAsync(string username, string password)
         {
             // Validate password strength
             if (!_passwordService.IsPasswordStrongEnough(password))
             {
-                return (Result.Failure("Password is not strong enough. It should have at least 12 chars, upper, lower letters, numbers and special characters."), null);
+                return (ServiceResult.Failure("Password is not strong enough. It should have at least 12 chars, upper, lower letters, numbers and special characters."), null);
             }
 
             // Check if username is free to use
             var existingUser = await _userRepository.GetByUsernameAsync(username);
             if (existingUser != null)
             {
-                return (Result.Failure("User with specified username already exists"), null);
+                return (ServiceResult.Failure("User with specified username already exists"), null);
             }
 
             // Hashing password
             var (hashedPassword, salt) = _passwordService.HashPassword(password);
 
 
-            var newUser = new User(Guid.NewGuid().ToString(), username, hashedPassword, salt);
+            var newUser = new User(username, hashedPassword, salt);
             await _userRepository.AddAsync(newUser);
-            return (Result.Success(), newUser);
+            return (ServiceResult.Success(), newUser);
         }
 
-        public async Task<(Result, string)> GenerateJwtAsync(string username, string password)
+        public async Task<(ServiceResult, string)> GenerateJwtAsync(string username, string password)
         {
             // Getting user
             var user = await _userRepository.GetByUsernameAsync(username);
             if (user == null)
             {
-                return (Result.Failure("User with specified username does not exist"), string.Empty);
+                return (ServiceResult.Failure("User with specified username does not exist"), string.Empty);
             }
 
             // Checking if password is correct
             if (!IsPasswordCorrect(password, user.HashedPassword, user.Salt))
             {
-                return (Result.Failure("Password is not correct"), string.Empty);
+                return (ServiceResult.Failure("Password is not correct"), string.Empty);
             }
-            return (Result.Success(), _authService.GenerateJwtToken(user));
+            return (ServiceResult.Success(), _authService.GenerateJwtToken(user));
         }
 
 

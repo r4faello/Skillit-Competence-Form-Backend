@@ -16,7 +16,7 @@ namespace CompetenceForm.Repositories
             _context = context;
         }
 
-        public async Task<CompetenceSet?> GetCurrentCompetenceSetAsync()
+        public async Task<ServiceResult<CompetenceSet>> GetCurrentCompetenceSetAsync()
         {
             var currentCompetence = await _context.CompetenceSets
                 .Include(cs => cs.Competences)
@@ -24,10 +24,15 @@ namespace CompetenceForm.Repositories
                 .ThenInclude(q => q.AnswerOptions)
                 .FirstOrDefaultAsync();
 
-            return currentCompetence;
+            if (currentCompetence == null)
+            {
+                return ServiceResult<CompetenceSet>.Failure("No current competence set found.");
+            }
+
+            return ServiceResult<CompetenceSet>.Success(currentCompetence);
         }
 
-        public async Task<CompetenceSet?> GetCompetenceSetByIdAsync(string competenceSetId, CompetenceSetQuery query)
+        public async Task<ServiceResult<CompetenceSet>> GetCompetenceSetByIdAsync(string competenceSetId, CompetenceSetQuery query)
         {
             var competenceSetQuery = _context.CompetenceSets.AsQueryable();
 
@@ -49,17 +54,21 @@ namespace CompetenceForm.Repositories
                 }
             }
 
-            return await competenceSetQuery.FirstOrDefaultAsync(cs => cs.Id == competenceSetId);
+            var competenceSet = await competenceSetQuery.FirstOrDefaultAsync(cs => cs.Id == competenceSetId);
+
+            if (competenceSet == null)
+            {
+                return ServiceResult<CompetenceSet>.Failure("Competence set not found.");
+            }
+
+            return ServiceResult<CompetenceSet>.Success(competenceSet);
         }
 
-
-
-
-        public async Task<Result> RegisterAnsweredQuestionAsync(Draft? draft, Question question, Answer answer)
+        public async Task<ServiceResult> RegisterAnsweredQuestionAsync(Draft? draft, Question question, Answer answer)
         {
             if(draft == null)
             {
-                return Result.Failure("Draft not valid.");
+                return ServiceResult.Failure("Draft not valid.");
             }
 
             try
@@ -79,23 +88,31 @@ namespace CompetenceForm.Repositories
             catch (Exception e)
             {
                 await Console.Out.WriteLineAsync(e.ToString());
-                return Result.Failure("Internal error.");
+                return ServiceResult.Failure("Internal error.");
             }
 
 
-            return Result.Success();
+            return ServiceResult.Success();
         }
 
-        public async Task<Draft> CreateNewDraftAsync(User author, CompetenceSet competenceSet)
+        public async Task<ServiceResult<Draft>> CreateNewDraftAsync(User author, CompetenceSet competenceSet)
         {
             var newDraft = new Draft(author, competenceSet);
             author.Drafts.Add(newDraft);
-            await _context.SaveChangesAsync();
 
-            return newDraft;
+            try
+            {
+                await _context.SaveChangesAsync();
+                return ServiceResult<Draft>.Success(newDraft);
+            }
+            catch (Exception e)
+            {
+                await Console.Out.WriteLineAsync(e.ToString());
+                return ServiceResult<Draft>.Failure("Failed to create new draft.");
+            }
         }
 
-        public async Task<Draft?> GetDraftByIdAsync(string draftId, DraftQuery query)
+        public async Task<ServiceResult<Draft>> GetDraftByIdAsync(string draftId, DraftQuery query)
         {
             var draftQuery = _context.Drafts.AsQueryable();
 
@@ -126,13 +143,17 @@ namespace CompetenceForm.Repositories
                 }
             }
 
-            return await draftQuery.FirstOrDefaultAsync(d => d.Id == draftId);
+            var draft = await draftQuery.FirstOrDefaultAsync(d => d.Id == draftId);
+
+            if (draft == null)
+            {
+                return ServiceResult<Draft>.Failure("Draft not found.");
+            }
+
+            return ServiceResult<Draft>.Success(draft);
         }
 
-
-
-
-        public async Task<Result> WipeCompetenceSets()
+        public async Task<ServiceResult> WipeCompetenceSetsAsync()
         {
             try
             {
@@ -147,16 +168,16 @@ namespace CompetenceForm.Repositories
 
                 await _context.SaveChangesAsync();
 
-                return Result.Success();
+                return ServiceResult.Success();
             }
             catch (Exception e)
             {
                 await Console.Out.WriteLineAsync(e.ToString());
-                return Result.Failure("Internal error.");
+                return ServiceResult.Failure("Internal error.");
             }
         }
 
-        public async Task<(Result, Competence?)> CreateRandomCompetenceAsync((int, int) answerCountRange, (int, int) answerImpactRange)
+        public async Task<ServiceResult<Competence>> CreateRandomCompetenceAsync((int, int) answerCountRange, (int, int) answerImpactRange)
         {
             var answerOptions = new List<Answer>();
             var rand = new Random();
@@ -179,16 +200,16 @@ namespace CompetenceForm.Repositories
 
 
                 await _context.SaveChangesAsync();
-                return (Result.Success(), competence);
+                return ServiceResult<Competence>.Success(competence);
             }
             catch (Exception e)
             {
                 await Console.Out.WriteLineAsync(e.ToString());
-                return (Result.Failure("Failed to save competence."), null);
+                return ServiceResult<Competence>.Failure("Failed to save competence.");
             }
         }
 
-        public async Task<(Result, CompetenceSet?)> CreateRandomCompetenceSetAsync(int competenceCount, (int, int) answerCountRange, (int, int) answerImpactRange)
+        public async Task<ServiceResult<CompetenceSet>> CreateRandomCompetenceSetAsync(int competenceCount, (int, int) answerCountRange, (int, int) answerImpactRange)
         {
             try
             {
@@ -196,14 +217,14 @@ namespace CompetenceForm.Repositories
 
                 for(int i=0; i<competenceCount; i++)
                 {
-                    var (competenceCreationResult, competence) = await CreateRandomCompetenceAsync(answerCountRange, answerImpactRange);
-                    if (!competenceCreationResult.IsSuccess || competence == null)
+                    var result = await CreateRandomCompetenceAsync(answerCountRange, answerImpactRange);
+                    if (!result.IsSuccess || result.Data == null)
                     {
-                        await Console.Out.WriteLineAsync("Competence failed to create: " + competenceCreationResult.Message);
+                        await Console.Out.WriteLineAsync("Competence failed to create: " + result.Message);
                     }
                     else
                     {
-                        competences.Add(competence);
+                        competences.Add(result.Data);
                     }
                 }
 
@@ -211,16 +232,16 @@ namespace CompetenceForm.Repositories
                 _context.CompetenceSets.Add(competenceSet);
 
                 await _context.SaveChangesAsync();
-                return (Result.Success(), competenceSet);
+                return ServiceResult<CompetenceSet>.Success(competenceSet);
             }
             catch (Exception e)
             {
                 await Console.Out.WriteLineAsync(e.ToString());
-                return (Result.Failure("Competence set failed to save."), null);
+                return ServiceResult<CompetenceSet>.Failure("Competence set failed to save.");
             }
         }
 
-        public async Task<Result> DeleteUserDrafts(User user)
+        public async Task<ServiceResult> DeleteUserDraftsAsync(User user)
         {
             try
             {
@@ -232,69 +253,77 @@ namespace CompetenceForm.Repositories
 
                 _context.Drafts.RemoveRange(_context.Drafts.Where(d => d.Author == user));
                 await _context.SaveChangesAsync();
-                return Result.Success();
+                return ServiceResult.Success();
             }
             catch (Exception e)
             {
                 Console.WriteLine(e.ToString());
-                return Result.Failure("Internal error.");
+                return ServiceResult.Failure("Internal error.");
             }
         }
 
-        public async Task<(Result, SubmittedRecord?)> FinalizeDraftAsync(User user, string competenceSetId)
+        public async Task<ServiceResult<SubmittedRecord>> FinalizeDraftAsync(User user, string competenceSetId)
         {
             var draft = await _context.Drafts
-                .Include(d=> d.QuestionAnswerPairs)
+                .Include(d => d.QuestionAnswerPairs)
                 .ThenInclude(qap => qap.Question)
-                .Include(d=> d.QuestionAnswerPairs)
+                .Include(d => d.QuestionAnswerPairs)
                 .ThenInclude(qap => qap.Answer)
                 .FirstOrDefaultAsync(d => d.Author.Id == user.Id);
-            if(draft == null){ return (Result.Failure("Draft not found"), null); }
 
-            if(draft?.QuestionAnswerPairs == null || !draft.QuestionAnswerPairs.Any()){ return (Result.Failure("Draft is empty"), null);}
-            
+            if (draft == null)
+            {
+                return ServiceResult<SubmittedRecord>.Failure("Draft not found.");
+            }
+
+            if (draft?.QuestionAnswerPairs == null || !draft.QuestionAnswerPairs.Any())
+            {
+                return ServiceResult<SubmittedRecord>.Failure("Draft is empty.");
+            }
 
             var competenceValues = new List<CompetenceValue>();
             foreach (var competence in draft.CompetenceSet.Competences)
             {
-                if(competence == null || competence.Question == null) { continue; }
+                if (competence == null || competence.Question == null) { continue; }
 
-                var pair = draft. QuestionAnswerPairs.FirstOrDefault(qap => qap.Question.Id == competence.Question.Id);
-
+                var pair = draft.QuestionAnswerPairs.FirstOrDefault(qap => qap.Question.Id == competence.Question.Id);
                 int? numericResult = pair != null ? pair.Answer.InpactOnCompetence : null;
-                
-                var newCompValue = new CompetenceValue(competence, numericResult);
 
+                var newCompValue = new CompetenceValue(competence, numericResult);
                 competenceValues.Add(newCompValue);
             }
 
-            
             var newSubmittedRecord = new SubmittedRecord(user, competenceSetId, competenceValues);
             await _context.SubmittedRecords.AddAsync(newSubmittedRecord);
             await _context.SaveChangesAsync();
 
-            return (Result.Success(), newSubmittedRecord);
+            return ServiceResult<SubmittedRecord>.Success(newSubmittedRecord);
         }
         public bool HasQuestionAnswerPairs(Draft draft)
         {
             return draft?.QuestionAnswerPairs != null && draft.QuestionAnswerPairs.Any();
         }
 
-        public async Task<(Result, List<SubmittedRecord>?)> GetAllSubmittedRecords()
+        public async Task<ServiceResult<List<SubmittedRecord>>> GetAllSubmittedRecordsAsync()
         {
             try
             {
-                var submittedRecords = await _context.SubmittedRecords.Include(sr=>sr.Author).Include(sr => sr.CompetenceValues).ThenInclude(cv => cv.Competence).ToListAsync();
-                return (Result.Success(), submittedRecords);
+                var submittedRecords = await _context.SubmittedRecords
+                    .Include(sr => sr.Author)
+                    .Include(sr => sr.CompetenceValues)
+                    .ThenInclude(cv => cv.Competence)
+                    .ToListAsync();
+
+                return ServiceResult<List<SubmittedRecord>>.Success(submittedRecords);
             }
             catch (Exception e)
             {
                 await Console.Out.WriteLineAsync(e.ToString());
-                return (Result.Failure("Internal error."), null);
+                return ServiceResult<List<SubmittedRecord>>.Failure("Internal error.");
             }
         }
 
-        public async Task<(Result, int?)> GetUnfinishedUserCount()
+        public async Task<ServiceResult<int>> GetUnfinishedUserCountAsync()
         {
             try
             {
@@ -303,16 +332,16 @@ namespace CompetenceForm.Repositories
                     .Distinct()
                     .CountAsync();
 
-                return (Result.Success(), userCount);
+                return ServiceResult<int>.Success(userCount);
             }
             catch (Exception e)
             {
                 await Console.Out.WriteLineAsync(e.ToString());
-                return (Result.Failure("Internal error."), null);
+                return ServiceResult<int>.Failure("Internal error.");
             }
         }
 
-        public async Task<(Result, CompetenceSet?)> CreateCompetenceSetFromJsonAsync(CompetenceSetJson jsonData)
+        public async Task<ServiceResult<CompetenceSet>> CreateCompetenceSetFromJsonAsync(CompetenceSetJson jsonData)
         {
             try
             {
@@ -328,7 +357,7 @@ namespace CompetenceForm.Repositories
 
                 if (competenceSetData == null || competenceSetData.Skills == null || !competenceSetData.Skills.Any())
                 {
-                    return (Result.Failure("Invalid or empty JSON data."), null);
+                    return ServiceResult<CompetenceSet>.Failure("Invalid or empty JSON data.");
                 }
 
                 // Create a new CompetenceSet
@@ -375,12 +404,12 @@ namespace CompetenceForm.Repositories
                 await _context.CompetenceSets.AddAsync(competenceSet);
                 await _context.SaveChangesAsync();
 
-                return (Result.Success(), competenceSet);
+                return ServiceResult<CompetenceSet>.Success(competenceSet);
             }
             catch (Exception e)
             {
                 await Console.Out.WriteLineAsync(e.ToString());
-                return (Result.Failure("Failed to create competence set from JSON."), null);
+                return ServiceResult<CompetenceSet>.Failure("Failed to create competence set from JSON.");
             }
         }
 
@@ -410,7 +439,5 @@ namespace CompetenceForm.Repositories
             public int Points { get; set; }
             public string Description { get; set; }
         }
-
-
     }
 }

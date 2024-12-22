@@ -46,17 +46,11 @@ namespace CompetenceForm.Controllers
             var currentCompSetDraft = user.Drafts.FirstOrDefault(d => d.CompetenceSet.Id == currentCompSetId);
 
             var currentCompSetDraftId = "";
-            if(currentCompSetDraft != null)
-            {
-                currentCompSetDraftId = currentCompSetDraft.Id;
-            }
+            if(currentCompSetDraft != null){currentCompSetDraftId = currentCompSetDraft.Id;}
 
-            var (result, response) = await _competenceService.SpitCompetenceSet(user);
-
-            if (result.IsSuccess == false)
-            {
-                return NotFound(result.Message);
-            }
+            var result = await _competenceService.SpitCompetenceSet(user);
+            if (result.IsSuccess == false){return NotFound(result.Message);}
+            var response = result.Data;
 
             return Ok(response);
         }
@@ -102,9 +96,9 @@ namespace CompetenceForm.Controllers
             var user = await GetUserAsync();
             if(user == null) { return Unauthorized(); }
 
-            var (result, record) = await _competenceService.FinalizeDraft(user);
-
+            var result = await _competenceService.FinalizeDraft(user);
             if (!result.IsSuccess){ return BadRequest(result.Message); }
+            var record = result.Data;
 
             return Ok(record);
         }
